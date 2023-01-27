@@ -117,12 +117,12 @@ def gmode_getter():
     pygame.time.set_timer(pygame.USEREVENT,10000)
     timer_active = True
     regFont = pygame.font.Font(None,30)
-    message = ['Input 1. Normal ','2. Multiball ','3. Big Ball, Small Paddle','4.Speed Pong']
+    message = ['Input' ,'1. Normal ','2. Multiball ','3. Big Ball, Small Paddle','4.Speed Pong']
     for text in message:
         messageprint.append(regFont.render(text,True,white))
     for line in range(len(messageprint)):
         print(line)
-        message_rect = messageprint[line].get_rect(center = (displayWidth/2,displayHeight/5 - line))
+        message_rect = messageprint[line].get_rect(center = (displayWidth/2,displayHeight/5 + 50*line))
         SCREEN.blit(messageprint[line],message_rect)
     pygame.display.flip()
     while timer_active:
@@ -150,7 +150,7 @@ def ballCrash(ballUno,ballDos):
 
 #Variable Defs
 clock = pygame.time.Clock()
-speed = 30
+speed = 20
 displayWidth = 500
 displayHeight = 300
 ascore = 0

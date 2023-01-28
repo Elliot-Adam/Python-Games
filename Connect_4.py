@@ -237,10 +237,13 @@ class Player:
     def board_change(self) -> None:
         """Board_Change module takes the choice from the Player class and puts it into the Board class"""
         #Accounts for list syntax
+        print('choice?',self.choice)
+        assert self.choice in [1,2,3,4,5,6,7]
         self.choice = self.choice_flipper(self.choice)
         self.choice -= 1
         while True:
             try:
+                print('choice', self.choice)
                 if not isinstance(BOARD.move_list[self.choice], int):
                     self.choice += 7
                 else:
@@ -249,6 +252,7 @@ class Player:
                 print('Please input a legal move')
                 self.choice_getter()
                 self.board_change()
+        print('Exit of board loop, actually changes board')
         BOARD.move_list[self.choice] = '\x1b[{}{}O\x1b[0m'.format(self.color,BOARD.blackbg)
 
     def choice_flipper(self,num) -> int:
@@ -269,6 +273,8 @@ class Player:
             case 7:
                 return 1            
 
+    def choice_getter(self):
+        pass
 
 class Test(Player):
     """Test bot for test mode. dif 4"""
@@ -277,14 +283,6 @@ class Test(Player):
         self.name = name
         self.score = 0
         self.choice = None
-
-    def choice_getter(self) -> None:
-        """Test bot chooses a random legal move from the BOARD"""
-        self.choice = random.choice(BOARD.legal_moves())
-    
-    def choice_and_change(bot,num):
-        bot.choice = num
-        bot.BOARD_change()
         
     class Vert_Tests:
         """Encapsulated version of all vertical tests"""
@@ -428,6 +426,14 @@ class Test(Player):
             Test.choice_and_change(TESTBOT1,6)
             Test.choice_and_change(TESTBOT1,7)
 
+    def choice_getter(self) -> None:
+        """Test bot chooses a random legal move from the BOARD"""
+        self.choice = random.choice(BOARD.legal_moves())
+    
+    def choice_and_change(bot,num):
+        bot.choice = num
+        bot.board_change()
+
     def check_tie_side(self,num,par1,par2) -> None:
         """Fills a whole column for the check_tie function"""
         Test.choice_and_change(par1,num)
@@ -550,7 +556,7 @@ class Test(Player):
             print('Diag Test 3 failed')
             return False
 
-        BOARD.board()
+        BOARD.set_board()
 
         self.Diag_Tests.diag_test4()
         BOARD.print_board()
@@ -559,7 +565,7 @@ class Test(Player):
             print('Diag Test 4 failed')
             return False
 
-        BOARD.board()
+        BOARD.set_board()
 
         self.Diag_Tests.diag_test5()
         BOARD.print_board()
@@ -617,16 +623,15 @@ class Test(Player):
         hardAI = HardAI('Hard AI')
         PLAYER1 = hardAI
         PLAYER2 = TESTBOT1
-        print(locals())
         turns(1)
 
     def run(self) -> None:
         """Runs all checks and asserts that they are correct and gives an assurance statement at the end that everything passed"""
-        #assert self.check_vert()
-        #assert self.check_horiz()
-        #assert self.check_diag()
-        #assert self.check_tie()
-        #self.easyAIcheck()
+        assert self.check_vert()
+        assert self.check_horiz()
+        assert self.check_diag()
+        assert self.check_tie()
+        self.easyAIcheck()
         self.hardAIcheck()
         print('All tests passed')
 
@@ -842,7 +847,7 @@ def startup() -> int:
         except:
             print('\nPlease input 1, 2, 3, or 4')
             continue
-        if dif not in range(1,4):
+        if dif not in range(1,5):
             print('Please input a 1, 2, 3, or 4')
             continue
         return dif
@@ -977,6 +982,5 @@ def test() -> None:
 if __name__ == '__main__':
     global BOARD
     BOARD = Board()
-    test()
-    # game_modes()
+    game_modes()
 

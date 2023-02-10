@@ -237,13 +237,11 @@ class Player:
     def board_change(self) -> None:
         """Board_Change module takes the choice from the Player class and puts it into the Board class"""
         #Accounts for list syntax
-        print('choice?',self.choice)
         assert self.choice in [1,2,3,4,5,6,7]
         self.choice = self.choice_flipper(self.choice)
         self.choice -= 1
         while True:
             try:
-                print('choice', self.choice)
                 if not isinstance(BOARD.move_list[self.choice], int):
                     self.choice += 7
                 else:
@@ -253,26 +251,11 @@ class Player:
                 self.choice_getter()
                 self.board_change()
                 break
-        print('Exit of board loop, actually changes board')
         BOARD.move_list[self.choice] = '\x1b[{}{}O\x1b[0m'.format(self.color,BOARD.blackbg)
 
     def choice_flipper(self,num) -> int:
         """Flips choice so it can display neatly(e.g. 1 -> 7, 3 -> 4, etc.)"""
-        match num:
-            case 1:
-                return 7
-            case 2:
-                return 6
-            case 3:
-                return 5
-            case 4:
-                return 4
-            case 5:
-                return 3
-            case 6:
-                return 2
-            case 7:
-                return 1            
+        return 8 - num         
 
     def choice_getter(self):
         pass

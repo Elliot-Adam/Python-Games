@@ -485,12 +485,12 @@ def startup() -> int:
     """Gets the mode/difficulty user input. Reused code from Tic Tac Toe"""
     while True:
         try:
-            dif = int(input('Modes\n1.Player vs Player\n2.Player vs Easy AI\n3.Player vs Hard AI\n4.Test Mode\n'))
+            dif = int(input('Modes\n1.Player vs Player\n2.Player vs Easy AI\n3.Player vs Hard AI\n'))
         except:
-            print('\nPlease input 1, 2, 3, or 4')
+            print('\nPlease input 1, 2, or 3')
             continue
         if dif not in range(1,5):
-            print('Please input a 1, 2, 3, or 4')
+            print('\nPlease input a 1, 2, or 3')
             continue
         return dif
 
@@ -559,8 +559,6 @@ def game_modes() -> None:
             player_VS_ezai()
         case 3:
             player_VS_hardai()
-        case 4:
-            test()
 
 def player_VS_player() -> None:
     """Player vs player code. Dif 1"""

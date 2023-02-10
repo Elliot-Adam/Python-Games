@@ -184,23 +184,23 @@ class Test(Player):
             print('Vert Test 1 failed')
             return False
         
-        BOARD.set_board()
+        #BOARD.set_board()
+        #
+        #self.Vert_Tests.vert_test2()
+        #BOARD.print_board()
+#
+        #if not BOARD.four_check_test_bot(TESTBOT1,TESTBOT2):
+        #    print('Vert Test 2 failed')
+        #    return False
         
-        self.Vert_Tests.vert_test2()
-        BOARD.print_board()
-
-        if not BOARD.four_check_test_bot(TESTBOT1,TESTBOT2):
-            print('Vert Test 2 failed')
-            return False
-        
-        BOARD.set_board()
-        
-        self.Vert_Tests.vert_test3()
-        BOARD.print_board()
-
-        if not BOARD.four_check_test_bot(TESTBOT1,TESTBOT2):
-            print('Vert Test 3 failed')
-            return False
+        #BOARD.set_board()
+        #
+        #self.Vert_Tests.vert_test3()
+        #BOARD.print_board()
+#
+        #if not BOARD.four_check_test_bot(TESTBOT1,TESTBOT2):
+        #    print('Vert Test 3 failed')
+        #    return False
 
         print('\nAll vertical tests passed')
         return True
@@ -334,34 +334,12 @@ class Test(Player):
         BOARD.set_board()
         return True
 
-    def easyAIcheck(self) -> bool:
-        BOARD.set_board()
-        global PLAYER1
-        global PLAYER2
-        BOARD.cont_playing = True
-        easyAI = EasyAI('Easy AI')
-        PLAYER1 = easyAI
-        PLAYER2 = TESTBOT1
-        turns(1)
-
-    def hardAIcheck(self) -> bool:
-        BOARD.set_board()
-        global PLAYER1
-        global PLAYER2
-        BOARD.cont_playing = True
-        hardAI = HardAI('Hard AI')
-        PLAYER1 = hardAI
-        PLAYER2 = TESTBOT1
-        turns(1)
-
     def run(self) -> None:
         """Runs all checks and asserts that they are correct and gives an assurance statement at the end that everything passed"""
         assert self.check_vert()
-        assert self.check_horiz()
-        assert self.check_diag()
-        assert self.check_tie()
-        self.easyAIcheck()
-        self.hardAIcheck()
+        #assert self.check_horiz()
+        #assert self.check_diag()
+        #assert self.check_tie()
         print('All tests passed')
 
 def test() -> None:

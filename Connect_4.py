@@ -252,6 +252,7 @@ class Player:
                 print('Please input a legal move')
                 self.choice_getter()
                 self.board_change()
+                break
         print('Exit of board loop, actually changes board')
         BOARD.move_list[self.choice] = '\x1b[{}{}O\x1b[0m'.format(self.color,BOARD.blackbg)
 
@@ -906,6 +907,7 @@ def turns(firstP) -> None:
                 t = 1
 
 #Level Functions
+
 def game_modes() -> None:
     """Runs different mode level functions"""
     dif = startup()

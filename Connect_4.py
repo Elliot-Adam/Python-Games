@@ -347,6 +347,8 @@ class HardAI(Player):
                 if score > best_moveKV[1]:
                     best_moveKV = (move,score)
                     print(best_moveKV)
+                if score == best_moveKV[1]:
+                    print(move,score,best_moveKV)
             self.best_moves_dict.clear()
             self.win_moves.clear()
             self.choice = best_moveKV[0]
@@ -370,17 +372,28 @@ class HardAI(Player):
                 for num1,num2,num3,num4 in self.weighted_randomizer(4,1):
                     row_count = row * 7
                     value = row_count + count 
-                    if math.floor((value + num1)/7) == math.floor((value + num2)/7) == math.floor((value + num3)/7) == math.floor((value + num4)/7):
-                        if not BOARD.move_list[value] == BOARD.move_list[value + num1] == BOARD.move_list[value + num2]:
+                    if not math.floor((value + num1)/7) == math.floor((value + num2)/7) == math.floor((value + num3)/7) == math.floor((value + num4)/7):
+                        continue
+                    #All in the same row
+                    if not BOARD.move_list[value] == BOARD.move_list[value + num1] == BOARD.move_list[value + num2]:
+                        continue
+                    #Three in a row
+                    if row_count:
+                        if not isinstance(BOARD.move_list[value + num4 - 7],str): 
+                            #The space below is not a chip
+                            print('Not accesible')
                             continue
-                        if not color in repr(BOARD.move_list[value]):
-                            print(False,'Dif color')
-                            continue
-                        if not isinstance(BOARD.move_list[value + num3],int):
-                            print(False,'Closed')
-                            continue
+                    #Can move there next turn
+                    if not color in repr(BOARD.move_list[value]):
+                        print(False,'Dif color')
+                        continue
+                    #Three in a row with our color
+                    if isinstance(BOARD.move_list[value + num4],str):
+                        print(False,'Closed')
+                        continue
+                    #Space hasn't already been taken
                         print(True,'row')
-                        self.win_moves.append(BOARD.move_list[value + num3])
+                        self.win_moves.append(BOARD.move_list[value + num4])
    
     def win_columns(self,color):
         for column in range(7):
@@ -440,8 +453,7 @@ class HardAI(Player):
                     self.win_moves[index] = 1
                 else:
                     self.win_moves[index] = self.choice_flipper(move % 7)
-                print('After in reco',self.win_moves[index])
-                pass                
+                print('After in reco',self.win_moves[index])        
 
             for winning_move in self.win_moves:
                 #Assigns score to moves

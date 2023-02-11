@@ -1623,8 +1623,8 @@ if __name__=="__main__":
     #Small_Projects.Cris_pass()
     #Small_Projects.function_pay_calc()
     #Small_Projects.prime_calc()
-    Small_Projects.recurs_additive_calc()
-    Small_Projects.recurs_additive_calc()
+    #Small_Projects.recurs_additive_calc()
+    #Small_Projects.recurs_additive_calc()
     #Small_Projects.factorial_calc()
     #Small_Projects.largest_and_smallest()
     #Small_Projects.vowel_count()
@@ -1647,5 +1647,5 @@ if __name__=="__main__":
     #Big_Projects.rps()
     #Big_Projects.scrabble_helper()
     #Big_Projects.TicTacToe()
-    #Big_Projects.Pong()
+    Big_Projects.Pong()
     pass

@@ -72,7 +72,8 @@ class Board:
             self.change(coord,piece)
 
 def setup():
-    global board,selected
+    global board,selected,playerVal
+    playerVal = 'WHITE'
     board = Board()
     board.createBoard()
     board.setBoardFront()
@@ -100,28 +101,79 @@ def draw_pieces():
         SCREEN.blit(scaled_img,(x,y))
 
 def coordClicked(x,y) -> str:
-    numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
-    num = 8 - (((y - board.textBuffer) // board.SQHEIGHT))
-    letter = numToLetter[(((x - board.textBuffer) // board.SQLENGTH) + 1)]
-    coord = letter + str(int(num))
-    print(coord)
-    return coord
+    if x > board.textBuffer and x < SCREEN_LENGTH - board.blankBuffer and y < SCREEN_HEIGHT - board.textBuffer and y > board.blankBuffer: 
+        numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
+        num = 8 - (((y - board.blankBuffer) // board.SQHEIGHT))
+        letter = numToLetter[(((x - board.textBuffer) // board.SQLENGTH) + 1)]
+        coord = letter + str(int(num))
+        print(coord)
+        return coord
+    else:
+        print('Not on board')
 
-def playerInputCheck():
+def boardChange(color,coord):
+    global playerVal,selected
+    board.board_dict[coord] = selection
+    if color == 'WHITE':
+        playerVal = 'BLACK'
+    else:
+        playerVal = 'WHITE'
+    selected = False
+
+def playerInputCheck(color):
+    global playerVal,selected,selection,selectedCoord
     if pygame.mouse.get_pressed()[0]:
         if pygame.mouse.get_pos()[0] in range(board.textBuffer,board.BOARD_LENGTH + board.textBuffer + 1):
-            global selected,selection
             x,y = pygame.mouse.get_pos()
             coord = coordClicked(x,y)
+            if selected:
+                numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
+                letterNumDict = {'a':1,'b':2,'c':3,'d':4,'e':5,'f':6,'g':7,'h':8}
+                if selection.split('_')[1] == 'PAWN':
+                    #Pawn Logic for taking
+                    if board.board_dict[coord] != None:
+                        letterNum = letterNumDict[selectedCoord[0]]
+                        if color == 'WHITE':
+                            num = int(selectedCoord[1]) + 1
+                        else:
+                            num = int(selectedCoord[1]) - 1
+
+                        if letterNum != 1 or letterNum != 8:
+                            adjacent = [numToLetter[letterNum + 1],numToLetter[letterNum - 1]]
+                        else:
+                            if letterNum == 1:
+                                adjacent = [numToLetter[2],None]
+                            else:
+                                adjacent = [numToLetter[7],None]
+                            
+                        for possible in adjacent:
+                            if possible != None:
+                                if coord == f'{possible}{num}':
+                                    boardChange(color,coord)
+                                    return
+                            
+                    else:
+                        if color == 'WHITE':
+                            num = int(selectedCoord[1]) + 1
+                        else:
+                            num = int(selectedCoord[1]) - 1
+                        if coord == f'{selectedCoord[0]}{num}':
+                            boardChange(color,coord)
+                            return
+            
             if board.board_dict[coord] != None:
-                if board.board_dict[coord].split('_')[0] == 'BLACK':
+                if board.board_dict[coord].split('_')[0] == color:
                     selected = True
                     selection = board.board_dict[coord]
-                    print(selection)
+                    selectedCoord = coord
+                    board.board_dict[coord] = None
+
+            
+                
 
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()
-    FPS = 20
+    FPS = 15
 
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
@@ -134,7 +186,7 @@ if __name__ == '__main__':
     isRunning = True
     setup()
     while isRunning:
-        playerInputCheck()
+        playerInputCheck(playerVal)
         draw_board()
         draw_pieces()
         for event in pygame.event.get():

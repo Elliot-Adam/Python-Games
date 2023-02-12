@@ -1,7 +1,8 @@
 import pygame
+from pygame import mixer
 import string
 pygame.init()
-
+mixer.init()
 
     
 class Board:
@@ -16,6 +17,11 @@ class Board:
     SQLENGTH = BOARD_LENGTH / 8
     SQHEIGHT = BOARD_HEIGHT / 8
     letterNumDict = {'a':0,'b':1,'c':2,'d':3,'e':4,'f':5,'g':6,'h':7}
+
+    def __init__(self):
+        self.createBoard()
+        self.setBoardFront()
+        
 
     def createBoard(self):   
         """Creates the board dictionary and sets up all the coordinates"""
@@ -44,7 +50,7 @@ class Board:
     def setBoardPieces(self,color):
         """Actually sets up the pieces on the board for the game"""
         letterList = ['a','b','c','d','e','f','g','h']
-        pieceList = ['ROOK','BISHOP','KNIGHT','QUEEN','KING','BISHOP','KNIGHT','ROOK']
+        pieceList = ['ROOK','KNIGHT','BISHOP','QUEEN','KING','BISHOP','KNIGHT','ROOK']
 
         match color:
             case 'WHITE':
@@ -72,11 +78,11 @@ class Board:
             self.change(coord,piece)
 
 def setup():
-    global board,selected,playerVal
+    global board,selected,playerVal,startingPos_dict
     playerVal = 'WHITE'
     board = Board()
-    board.createBoard()
-    board.setBoardFront()
+    startingPos = Board()
+    startingPos_dict = startingPos.board_dict
     selected = False
     
 def draw_board():
@@ -101,79 +107,138 @@ def draw_pieces():
         SCREEN.blit(scaled_img,(x,y))
 
 def coordClicked(x,y) -> str:
-    if x > board.textBuffer and x < SCREEN_LENGTH - board.blankBuffer and y < SCREEN_HEIGHT - board.textBuffer and y > board.blankBuffer: 
-        numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
-        num = 8 - (((y - board.blankBuffer) // board.SQHEIGHT))
-        letter = numToLetter[(((x - board.textBuffer) // board.SQLENGTH) + 1)]
-        coord = letter + str(int(num))
-        print(coord)
-        return coord
-    else:
-        print('Not on board')
+    numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
+    num = 8 - (((y - board.blankBuffer) // board.SQHEIGHT))
+    letter = numToLetter[(((x - board.textBuffer) // board.SQLENGTH) + 1)]
+    coord = letter + str(int(num))
+    return coord
 
-def boardChange(color,coord):
-    global playerVal,selected
-    board.board_dict[coord] = selection
+def sideChange(color):
+    global playerVal,selected,lastCoord,lastPiece
     if color == 'WHITE':
         playerVal = 'BLACK'
     else:
         playerVal = 'WHITE'
+    lastCoord = selectedCoord
+    lastPiece = selection
     selected = False
 
-def playerInputCheck(color):
-    global playerVal,selected,selection,selectedCoord
+def playerInputLogic(color):
+    global playerVal,selected,selection,selectedCoord,lastCoord,lastPiece
+    
     if pygame.mouse.get_pressed()[0]:
-        if pygame.mouse.get_pos()[0] in range(board.textBuffer,board.BOARD_LENGTH + board.textBuffer + 1):
+        if pygame.mouse.get_pos()[0] in range(board.textBuffer,board.BOARD_LENGTH + board.textBuffer + 1) and pygame.mouse.get_pos()[1] in range(board.blankBuffer,board.blankBuffer + board.BOARD_HEIGHT + 1):
             x,y = pygame.mouse.get_pos()
             coord = coordClicked(x,y)
             if selected:
+                mixer.music.load('c:/Users/Elliot/Specific Projects/Python-Games/Chess/PIECE_DROPPING.m4a')
+                mixer.music.play()
+                #Putting down a piece if holding a piece
                 numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
                 letterNumDict = {'a':1,'b':2,'c':3,'d':4,'e':5,'f':6,'g':7,'h':8}
-                if selection.split('_')[1] == 'PAWN':
+                piece = selection.split('_')[1]
+                if coord == selectedCoord:
+                    #You can put a piece back without it switching turns
+                    board.change(coord,selection)
+                    selected = False
+                    return
+
+                if piece == 'PAWN':
                     #Pawn Logic for taking
                     if board.board_dict[coord] != None:
-                        letterNum = letterNumDict[selectedCoord[0]]
-                        if color == 'WHITE':
-                            num = int(selectedCoord[1]) + 1
-                        else:
-                            num = int(selectedCoord[1]) - 1
-
-                        if letterNum != 1 or letterNum != 8:
-                            adjacent = [numToLetter[letterNum + 1],numToLetter[letterNum - 1]]
-                        else:
-                            if letterNum == 1:
-                                adjacent = [numToLetter[2],None]
+                        if board.board_dict[coord].split('_')[0] != color:
+                            #Can only take if not the same color
+                            letterNum = letterNumDict[selectedCoord[0]]
+                            if color == 'WHITE':
+                                num = int(selectedCoord[1]) + 1
                             else:
-                                adjacent = [numToLetter[7],None]
-                            
-                        for possible in adjacent:
-                            if possible != None:
-                                if coord == f'{possible}{num}':
-                                    boardChange(color,coord)
-                                    return
+                                num = int(selectedCoord[1]) - 1
+
+                            if letterNum != 1 or letterNum != 8:
+                                adjacent = [numToLetter[letterNum + 1],numToLetter[letterNum - 1]]
+                            else:
+                                if letterNum == 1:
+                                    adjacent = [numToLetter[2],None]
+                                else:
+                                    adjacent = [numToLetter[7],None]
+                                
+                            for possible in adjacent:
+                                if possible != None:
+                                    if coord == f'{possible}{num}':
+                                        board.change(coord,selection)
+                                        sideChange(color)
+                                        return
                             
                     else:
+                        #Pawn logic for moving and en passant
+                        #If on starting square pawn can move two squares
                         if color == 'WHITE':
-                            num = int(selectedCoord[1]) + 1
+                            if selectedCoord[1] == '2':
+                                possibleNums = [int(selectedCoord[1]) + 1, int(selectedCoord[1]) + 2]
+                            else:
+                                possibleNums = [int(selectedCoord[1]) + 1,None]
                         else:
-                            num = int(selectedCoord[1]) - 1
-                        if coord == f'{selectedCoord[0]}{num}':
-                            boardChange(color,coord)
-                            return
+                            if selectedCoord[1] == '7':
+                                possibleNums = [int(selectedCoord[1]) - 1, int(selectedCoord[1]) - 2]
+                            else:
+                                possibleNums = [int(selectedCoord[1]) - 1,None]
+
+                        #En passant stuff - Not completed
+                        #print(startingPos_dict,board.board_dict)
+                        if startingPos_dict.values != board.board_dict.values:
+                            print(lastCoord,lastPiece)
+                            #If not in starting position because then there will be no previous coordinate or piece
+                            if lastPiece.split('_')[1] == 'PAWN' and (lastCoord[1] == '7' or lastCoord[1] == '2'):
+                                 #If last piece was a pawn and pawn was on 7 or 2
+                                 print(lastPiece, lastCoord)
+                                 return 
+
+                        #Moving logic for pawns; accounts for opening double move
+                        letter = selectedCoord[0]
+                        for possible in possibleNums:
+                            if possible != None:
+                                if coord == f'{letter}{possible}':
+                                    board.change(coord,selection)
+                                    sideChange(color)
+                                    return
             
+                if piece == 'KNIGHT':
+                    #Knight Logic
+                    letterNum = letterNumDict[selectedCoord[0]]
+                    possibleMoves = [] #List of strings for possible moves
+                    for possible in [1,2,-1,-2]:
+                        try:
+                            letter = numToLetter[letterNum + possible]
+                            num = int(((possible / possible) * (3 - abs(possible))) + int(selectedCoord[1])) 
+                            #    gets positivity of possible     gets inverted(2 to 1, 1 to 2)
+                            possibleMoves.append(letter + str(num))
+                        except KeyError:
+                            pass
+                    print(possibleMoves)
+
+                    for move in possibleMoves:
+                        if coord == move:
+                            if board.board_dict[coord] == None or board.board_dict[coord].split('_')[0] != color:
+                                board.change(coord,selection)
+                                sideChange(color)
+                                return
+                    return
+
             if board.board_dict[coord] != None:
+                #Grabbing a piece; only runs if there is a piece in that square
                 if board.board_dict[coord].split('_')[0] == color:
                     selected = True
                     selection = board.board_dict[coord]
                     selectedCoord = coord
-                    board.board_dict[coord] = None
+                    board.change(coord,None)
+                    
 
             
                 
 
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()
-    FPS = 15
+    FPS = 10
 
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
@@ -186,7 +251,7 @@ if __name__ == '__main__':
     isRunning = True
     setup()
     while isRunning:
-        playerInputCheck(playerVal)
+        playerInputLogic(playerVal)
         draw_board()
         draw_pieces()
         for event in pygame.event.get():

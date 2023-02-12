@@ -209,11 +209,23 @@ def playerInputLogic(color):
                     for possible in [1,2,-1,-2]:
                         try:
                             letter = numToLetter[letterNum + possible]
-                            num = int(((possible / possible) * (3 - abs(possible))) + int(selectedCoord[1])) 
-                            #    gets positivity of possible     gets inverted(2 to 1, 1 to 2)
-                            possibleMoves.append(letter + str(num))
+                            num = int((abs(possible) / possible) * (3 - abs(possible)))
+                            #    gets if possible is + or -                gets inverted(2 to 1, 1 to 2)
+
+                            posNum = str(int(selectedCoord[1]) + num)
+                            negNum = str(int(selectedCoord[1]) - num)
+
+                            legal = [1,2,3,4,5,6,7,8]
+                            
+                            if int(posNum) in legal:
+                                possibleMoves.append(letter + posNum)
+                            
+                            if int(negNum) in legal:
+                                possibleMoves.append(letter + negNum)
+
                         except KeyError:
                             pass
+
                     print(possibleMoves)
 
                     for move in possibleMoves:
@@ -222,7 +234,7 @@ def playerInputLogic(color):
                                 board.change(coord,selection)
                                 sideChange(color)
                                 return
-                    return
+                    
 
             if board.board_dict[coord] != None:
                 #Grabbing a piece; only runs if there is a piece in that square
@@ -239,6 +251,8 @@ def playerInputLogic(color):
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()
     FPS = 10
+
+    clientCount = 0
 
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500

@@ -5,9 +5,19 @@ pygame.init()
 
     
 class Board:
+    SCREEN_LENGTH = 500
+    SCREEN_HEIGHT = 500
     board_dict = {}
+    rect_dict = {}
+    blankBuffer = 23
+    textBuffer = 39
+    BOARD_LENGTH = SCREEN_LENGTH - blankBuffer - textBuffer
+    BOARD_HEIGHT = SCREEN_HEIGHT - blankBuffer - textBuffer
+    SQLENGTH = BOARD_LENGTH / 8
+    SQHEIGHT = BOARD_HEIGHT / 8
+    letterNumDict = {'a':0,'b':1,'c':2,'d':3,'e':4,'f':5,'g':6,'h':7}
 
-    def createBoard(self):
+    def createBoard(self):   
         """Creates the board dictionary and sets up all the coordinates"""
         letterCoord = string.ascii_lowercase[:8]
         for letter in letterCoord:
@@ -15,6 +25,9 @@ class Board:
                 snum = str(number)
                 coord = letter + snum
                 self.board_dict[coord] = None
+                x = self.textBuffer + (self.letterNumDict[coord[0]] * self.SQLENGTH) + 5
+                y = self.blankBuffer + ((8 - int(coord[1])) * self.SQHEIGHT) + 5
+                self.rect_dict[coord] = pygame.Rect(x,y,self.SQLENGTH,self.SQHEIGHT)
 
     def change(self,coord:str,piece:str):
         """The coordinate should be like h4 or e5 while the piece will be the name of the image file so like
@@ -48,9 +61,9 @@ class Board:
         """Sets up all the pawns"""
         match color:
             case 'WHITE':
-                num = '1'
+                num = '2'
             case 'BLACK':
-                num = '8'
+                num = '7'
         letterList = ['a','b','c','d','e','f','g','h']
 
         for iter in range(8):
@@ -59,38 +72,52 @@ class Board:
             self.change(coord,piece)
 
 def setup():
-    global board
+    global board,selected
     board = Board()
     board.createBoard()
     board.setBoardFront()
-
-def draw():
-    draw_board()
-    draw_pieces()
-
+    selected = False
+    
 def draw_board():
-    boardImage = pygame.image.load('c:/Users/Elliot/Specific Projects/Python-Games/Chess/ChessBoard.png').convert_alpha()
+    boardImage = pygame.image.load('c:/Users/Elliot/Specific Projects/Python-Games/Chess/ChessBoardWHITE.png').convert_alpha()
     scaled_boardImage = pygame.transform.scale(boardImage,(SCREEN_LENGTH,SCREEN_HEIGHT))
     SCREEN.blit(scaled_boardImage,(0,0))
 
 def draw_pieces():
-    leftBuffer = 39
-    rightBuffer = 23
-
-    HEIGHT = SCREEN_HEIGHT / 8 - 10
-    LENGTH = SCREEN_LENGTH - leftBuffer - rightBuffer/ 8 
-    letterNumDict = {'a':0,'b':1,'c':2,'d':3,'e':4,'f':5,'g':6,'h':7}
+    """Draws the pieces to the board"""
     for coord,value in board.board_dict.items():
         if value == None:
             continue
-        x = (letterNumDict[coord[0]] * LENGTH) + leftBuffer
-        y = (8 - int(coord[1])) * HEIGHT
-        img = pygame.image.load('c:/Users/Elliot/Specific Projects/Python-Games/Chess/{}.png'.format(value)).convert()
-        scaled_img = pygame.transform.scale(img,(SCREEN_LENGTH/8 - 25,SCREEN_HEIGHT/8 - 25))
-        rect = scaled_img.get_rect()
-        rect.x = x
-        rect.y = y
-        SCREEN.blit(scaled_img,rect)
+        img = pygame.image.load('c:/Users/Elliot/Specific Projects/Python-Games/Chess/{}.png'.format(value))
+        rect : pygame.Rect = board.rect_dict[coord]
+        scaled_img = pygame.transform.scale(img,(rect.width - 10,rect.height - 10))
+        SCREEN.blit(scaled_img,(rect.x,rect.y))
+
+    if selected:
+        x,y = pygame.mouse.get_pos()
+        img = pygame.image.load('c:/Users/Elliot/Specific Projects/Python-Games/Chess/{}.png'.format(selection))
+        scaled_img = pygame.transform.scale(img,(rect.width - 10,rect.height - 10))
+        SCREEN.blit(scaled_img,(x,y))
+
+def coordClicked(x,y) -> str:
+    numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
+    num = 8 - (((y - board.textBuffer) // board.SQHEIGHT))
+    letter = numToLetter[(((x - board.textBuffer) // board.SQLENGTH) + 1)]
+    coord = letter + str(int(num))
+    print(coord)
+    return coord
+
+def playerInputCheck():
+    if pygame.mouse.get_pressed()[0]:
+        if pygame.mouse.get_pos()[0] in range(board.textBuffer,board.BOARD_LENGTH + board.textBuffer + 1):
+            global selected,selection
+            x,y = pygame.mouse.get_pos()
+            coord = coordClicked(x,y)
+            if board.board_dict[coord] != None:
+                if board.board_dict[coord].split('_')[0] == 'BLACK':
+                    selected = True
+                    selection = board.board_dict[coord]
+                    print(selection)
 
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()
@@ -107,7 +134,9 @@ if __name__ == '__main__':
     isRunning = True
     setup()
     while isRunning:
-        draw()
+        playerInputCheck()
+        draw_board()
+        draw_pieces()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 isRunning = False

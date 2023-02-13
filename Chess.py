@@ -86,7 +86,7 @@ def setup():
     selected = False
     
 def draw_board():
-    boardImage = pygame.image.load('c:/Users/Elliot/Specific Projects/Python-Games/Chess/ChessBoardWHITE.png').convert_alpha()
+    boardImage = pygame.image.load('Chess/ChessBoardWHITE.png').convert_alpha()
     scaled_boardImage = pygame.transform.scale(boardImage,(SCREEN_LENGTH,SCREEN_HEIGHT))
     SCREEN.blit(scaled_boardImage,(0,0))
 
@@ -95,14 +95,14 @@ def draw_pieces():
     for coord,value in board.board_dict.items():
         if value == None:
             continue
-        img = pygame.image.load('c:/Users/Elliot/Specific Projects/Python-Games/Chess/{}.png'.format(value))
+        img = pygame.image.load('Chess/{}.png'.format(value))
         rect : pygame.Rect = board.rect_dict[coord]
         scaled_img = pygame.transform.scale(img,(rect.width - 10,rect.height - 10))
         SCREEN.blit(scaled_img,(rect.x,rect.y))
 
     if selected:
         x,y = pygame.mouse.get_pos()
-        img = pygame.image.load('c:/Users/Elliot/Specific Projects/Python-Games/Chess/{}.png'.format(selection))
+        img = pygame.image.load('Chess/{}.png'.format(selection))
         scaled_img = pygame.transform.scale(img,(rect.width - 10,rect.height - 10))
         SCREEN.blit(scaled_img,(x,y))
 
@@ -131,7 +131,7 @@ def playerInputLogic(color):
             x,y = pygame.mouse.get_pos()
             coord = coordClicked(x,y)
             if selected:
-                mixer.music.load('c:/Users/Elliot/Specific Projects/Python-Games/Chess/PIECE_DROPPING.m4a')
+                mixer.music.load('Chess/PIECE_DROPPING.m4a')
                 mixer.music.play()
                 #Putting down a piece if holding a piece
                 numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
@@ -282,7 +282,7 @@ if __name__ == '__main__':
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
     name = 'Chess'
-    icon = pygame.image.load('c:/Users/Elliot/Specific Projects/Python-Games/Chess/WHITE_PAWN.png')
+    icon = pygame.image.load('Chess/WHITE_PAWN.png')
 
     SCREEN = pygame.display.set_mode((SCREEN_LENGTH,SCREEN_HEIGHT))
     pygame.display.set_caption(name)

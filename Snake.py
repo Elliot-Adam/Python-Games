@@ -143,7 +143,7 @@ if __name__ == '__main__':
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
     name = 'Snake'
-    icon = pygame.image.load('c:/Users/Elliot/Specific Projects/Python-Games/Snake.png')
+    icon = pygame.image.load('Snake.png')
 
     SCREEN = pygame.display.set_mode((SCREEN_LENGTH,SCREEN_HEIGHT))
     pygame.display.set_caption(name)

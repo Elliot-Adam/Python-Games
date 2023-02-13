@@ -242,9 +242,8 @@ def playerInputLogic(color):
                                 if board.board_dict[coord] == None or chosenColor != color:
                                     board.change(coord,selection)
                                     sideChange(color)
-                                    return
-                                else:
-                                    return
+
+                        return
                     
                     case 'BISHOP':
                         #Logic for moving/taking
@@ -280,9 +279,8 @@ def playerInputLogic(color):
                                 if board.board_dict[coord] == None or chosenColor != color:
                                     board.change(coord,selection)
                                     sideChange(color)
-                                    return
-                                else:
-                                    return
+                        
+                        return
 
             if board.board_dict[coord] != None:
                 #Grabbing a piece, when you don't have one; only runs if there is a piece in that square

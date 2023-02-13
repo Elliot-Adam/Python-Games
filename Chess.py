@@ -4,7 +4,10 @@ import string
 pygame.init()
 mixer.init()
 
-    
+class Convert:
+    numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
+    letterNumDict = {'a':1,'b':2,'c':3,'d':4,'e':5,'f':6,'g':7,'h':8}
+
 class Board:
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
@@ -16,7 +19,7 @@ class Board:
     BOARD_HEIGHT = SCREEN_HEIGHT - blankBuffer - textBuffer
     SQLENGTH = BOARD_LENGTH / 8
     SQHEIGHT = BOARD_HEIGHT / 8
-    letterNumDict = {'a':0,'b':1,'c':2,'d':3,'e':4,'f':5,'g':6,'h':7}
+    
 
     def __init__(self):
         self.createBoard()
@@ -31,7 +34,7 @@ class Board:
                 snum = str(number)
                 coord = letter + snum
                 self.board_dict[coord] = None
-                x = self.textBuffer + (self.letterNumDict[coord[0]] * self.SQLENGTH) + 5
+                x = self.textBuffer + ((Convert.letterNumDict[coord[0]] - 1) * self.SQLENGTH) + 5
                 y = self.blankBuffer + ((8 - int(coord[1])) * self.SQHEIGHT) + 5
                 self.rect_dict[coord] = pygame.Rect(x,y,self.SQLENGTH,self.SQHEIGHT)
 
@@ -107,9 +110,11 @@ def draw_pieces():
         SCREEN.blit(scaled_img,(x,y))
 
 def coordClicked(x,y) -> str:
-    numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
     num = 8 - (((y - board.blankBuffer) // board.SQHEIGHT))
-    letter = numToLetter[(((x - board.textBuffer) // board.SQLENGTH) + 1)]
+    #Get the number by reversing the distance from the start of the board to the end of the board and dividing
+    #By the square size to end up with the number between 1 and 8
+    letter = Convert.numToLetter[(((x - board.textBuffer) // board.SQLENGTH) + 1)]
+    #Pretty much same thing down here except it gets converted back into a letter
     coord = letter + str(int(num))
     return coord
 
@@ -130,12 +135,16 @@ def playerInputLogic(color):
         if pygame.mouse.get_pos()[0] in range(board.textBuffer,board.BOARD_LENGTH + board.textBuffer + 1) and pygame.mouse.get_pos()[1] in range(board.blankBuffer,board.blankBuffer + board.BOARD_HEIGHT + 1):
             x,y = pygame.mouse.get_pos()
             coord = coordClicked(x,y)
+            if board.board_dict[coord] != None:
+                #If the chosen spot isn't empty, grab the color of the piece you clicked
+                chosenColor = board.board_dict[coord].split('_')[0]
+                #I could just put board.board_dict[coord].split('_')[0] everywhere I wanted to
+                #see if what you were taking was your own color, but I thought it looked really messy
+
             if selected:
                 mixer.music.load('Chess/PIECE_DROPPING.m4a')
                 mixer.music.play()
                 #Putting down a piece if holding a piece
-                numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
-                letterNumDict = {'a':1,'b':2,'c':3,'d':4,'e':5,'f':6,'g':7,'h':8}
                 piece = selection.split('_')[1]
                 if coord == selectedCoord:
                     #You can put a piece back without it switching turns
@@ -147,21 +156,21 @@ def playerInputLogic(color):
                     case 'PAWN':
                         #Pawn Logic for taking
                         if board.board_dict[coord] != None:
-                            if board.board_dict[coord].split('_')[0] != color:
+                            if chosenColor != color:
                                 #Can only take if not the same color
-                                letterNum = letterNumDict[selectedCoord[0]]
+                                letterNum = Convert.letterNumDict[selectedCoord[0]]
                                 if color == 'WHITE':
                                     num = int(selectedCoord[1]) + 1
                                 else:
                                     num = int(selectedCoord[1]) - 1
 
                                 if letterNum != 1 or letterNum != 8:
-                                    adjacent = [numToLetter[letterNum + 1],numToLetter[letterNum - 1]]
+                                    adjacent = [Convert.numToLetter[letterNum + 1],Convert.numToLetter[letterNum - 1]]
                                 else:
                                     if letterNum == 1:
-                                        adjacent = [numToLetter[2],None]
+                                        adjacent = [Convert.numToLetter[2],None]
                                     else:
-                                        adjacent = [numToLetter[7],None]
+                                        adjacent = [Convert.numToLetter[7],None]
                                     
                                 for possible in adjacent:
                                     if possible != None:
@@ -206,11 +215,11 @@ def playerInputLogic(color):
                 
                     case 'KNIGHT':
                         #Knight Logic
-                        letterNum = letterNumDict[selectedCoord[0]]
+                        letterNum = Convert.letterNumDict[selectedCoord[0]]
                         possibleMoves = [] #List of strings for possible moves
                         for possible in [1,2,-1,-2]:
                             try:
-                                letter = numToLetter[letterNum + possible]
+                                letter = Convert.numToLetter[letterNum + possible]
                                 num = int(3 - abs(possible))
                                 #    gets inverted(2 to 1, 1 to 2)
 
@@ -228,9 +237,9 @@ def playerInputLogic(color):
                             except KeyError:
                                 pass
 
-                        for move in possibleMoves:
-                            if coord == move:
-                                if board.board_dict[coord] == None or board.board_dict[coord].split('_')[0] != color:
+                        for possible in possibleMoves:
+                            if coord == possible:
+                                if board.board_dict[coord] == None or chosenColor != color:
                                     board.change(coord,selection)
                                     sideChange(color)
                                     return
@@ -240,31 +249,44 @@ def playerInputLogic(color):
                     case 'BISHOP':
                         #Logic for moving/taking
                         possibleMoves = []
-                        for letterinc,numinc in [1,1,-1,-1],[1,-1,1,-1]:
+                        for letterinc,numinc in [(1,1),(1,-1),(-1,1),(-1,-1)]:
                             diagBool = True
-                            letterNum = letterNumDict[selectedCoord[0]]
+                            letterNum = Convert.letterNumDict[selectedCoord[0]]
                             num = int(selectedCoord[1])
                             while diagBool:
                                 try:
+                                    #Move in that diagonal
                                     letterNum += letterinc
                                     num += numinc
-                                    if 1 <= num <= 8:
-                                        diagBool = False
+                                    if not 1 <= num <= 8:
+                                        #If diagonal goes off board
+                                        break
 
-                                    newCoord = numToLetter[letterNum] + str(num)
-                                    if board.board_dict[coord] != None:
+                                    newCoord = Convert.numToLetter[letterNum] + str(num)
+                                    if board.board_dict[newCoord] != None:
                                         #If theres a piece in the intended spot
                                         diagBool = False
+                                        
 
                                     possibleMoves.append(newCoord)
                                     
                                 except KeyError:
                                     pass
+                            
                         print(possibleMoves)
+                            
+                        for possible in possibleMoves:
+                            if coord == possible:
+                                if board.board_dict[coord] == None or chosenColor != color:
+                                    board.change(coord,selection)
+                                    sideChange(color)
+                                    return
+                                else:
+                                    return
 
             if board.board_dict[coord] != None:
-                #Grabbing a piece; only runs if there is a piece in that square
-                if board.board_dict[coord].split('_')[0] == color:
+                #Grabbing a piece, when you don't have one; only runs if there is a piece in that square
+                if chosenColor == color:
                     selected = True
                     selection = board.board_dict[coord]
                     selectedCoord = coord

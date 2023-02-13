@@ -143,98 +143,123 @@ def playerInputLogic(color):
                     selected = False
                     return
 
-                if piece == 'PAWN':
-                    #Pawn Logic for taking
-                    if board.board_dict[coord] != None:
-                        if board.board_dict[coord].split('_')[0] != color:
-                            #Can only take if not the same color
-                            letterNum = letterNumDict[selectedCoord[0]]
-                            if color == 'WHITE':
-                                num = int(selectedCoord[1]) + 1
-                            else:
-                                num = int(selectedCoord[1]) - 1
-
-                            if letterNum != 1 or letterNum != 8:
-                                adjacent = [numToLetter[letterNum + 1],numToLetter[letterNum - 1]]
-                            else:
-                                if letterNum == 1:
-                                    adjacent = [numToLetter[2],None]
+                match piece:
+                    case 'PAWN':
+                        #Pawn Logic for taking
+                        if board.board_dict[coord] != None:
+                            if board.board_dict[coord].split('_')[0] != color:
+                                #Can only take if not the same color
+                                letterNum = letterNumDict[selectedCoord[0]]
+                                if color == 'WHITE':
+                                    num = int(selectedCoord[1]) + 1
                                 else:
-                                    adjacent = [numToLetter[7],None]
+                                    num = int(selectedCoord[1]) - 1
+
+                                if letterNum != 1 or letterNum != 8:
+                                    adjacent = [numToLetter[letterNum + 1],numToLetter[letterNum - 1]]
+                                else:
+                                    if letterNum == 1:
+                                        adjacent = [numToLetter[2],None]
+                                    else:
+                                        adjacent = [numToLetter[7],None]
+                                    
+                                for possible in adjacent:
+                                    if possible != None:
+                                        if coord == f'{possible}{num}':
+                                            board.change(coord,selection)
+                                            sideChange(color)
+                                            return
                                 
-                            for possible in adjacent:
+                        else:
+                            #Pawn logic for moving and en passant
+                            #If on starting square pawn can move two squares
+                            if color == 'WHITE':
+                                if selectedCoord[1] == '2':
+                                    possibleNums = [int(selectedCoord[1]) + 1, int(selectedCoord[1]) + 2]
+                                else:
+                                    possibleNums = [int(selectedCoord[1]) + 1,None]
+                            else:
+                                if selectedCoord[1] == '7':
+                                    possibleNums = [int(selectedCoord[1]) - 1, int(selectedCoord[1]) - 2]
+                                else:
+                                    possibleNums = [int(selectedCoord[1]) - 1,None]
+
+                            #En passant stuff - Not completed
+                            #print(startingPos_dict,board.board_dict)
+                            if startingPos_dict.values != board.board_dict.values:
+                                print(lastCoord,lastPiece)
+                                #If not in starting position because then there will be no previous coordinate or piece
+                                if lastPiece.split('_')[1] == 'PAWN' and (lastCoord[1] == '7' or lastCoord[1] == '2'):
+                                    #If last piece was a pawn and pawn was on 7 or 2
+                                    print(lastPiece, lastCoord)
+                                    return 
+
+                            #Moving logic for pawns; accounts for opening double move
+                            letter = selectedCoord[0]
+                            for possible in possibleNums:
                                 if possible != None:
-                                    if coord == f'{possible}{num}':
+                                    if coord == f'{letter}{possible}':
                                         board.change(coord,selection)
                                         sideChange(color)
                                         return
-                            
-                    else:
-                        #Pawn logic for moving and en passant
-                        #If on starting square pawn can move two squares
-                        if color == 'WHITE':
-                            if selectedCoord[1] == '2':
-                                possibleNums = [int(selectedCoord[1]) + 1, int(selectedCoord[1]) + 2]
-                            else:
-                                possibleNums = [int(selectedCoord[1]) + 1,None]
-                        else:
-                            if selectedCoord[1] == '7':
-                                possibleNums = [int(selectedCoord[1]) - 1, int(selectedCoord[1]) - 2]
-                            else:
-                                possibleNums = [int(selectedCoord[1]) - 1,None]
+                
+                    case 'KNIGHT':
+                        #Knight Logic
+                        letterNum = letterNumDict[selectedCoord[0]]
+                        possibleMoves = [] #List of strings for possible moves
+                        for possible in [1,2,-1,-2]:
+                            try:
+                                letter = numToLetter[letterNum + possible]
+                                num = int(3 - abs(possible))
+                                #    gets inverted(2 to 1, 1 to 2)
 
-                        #En passant stuff - Not completed
-                        #print(startingPos_dict,board.board_dict)
-                        if startingPos_dict.values != board.board_dict.values:
-                            print(lastCoord,lastPiece)
-                            #If not in starting position because then there will be no previous coordinate or piece
-                            if lastPiece.split('_')[1] == 'PAWN' and (lastCoord[1] == '7' or lastCoord[1] == '2'):
-                                 #If last piece was a pawn and pawn was on 7 or 2
-                                 print(lastPiece, lastCoord)
-                                 return 
+                                posNum = str(int(selectedCoord[1]) + num)
+                                negNum = str(int(selectedCoord[1]) - num)
 
-                        #Moving logic for pawns; accounts for opening double move
-                        letter = selectedCoord[0]
-                        for possible in possibleNums:
-                            if possible != None:
-                                if coord == f'{letter}{possible}':
+                                legal = [1,2,3,4,5,6,7,8]
+                                
+                                if int(posNum) in legal:
+                                    possibleMoves.append(letter + posNum)
+                                
+                                if int(negNum) in legal:
+                                    possibleMoves.append(letter + negNum)
+
+                            except KeyError:
+                                pass
+
+                        print(possibleMoves)
+
+                        for move in possibleMoves:
+                            if coord == move:
+                                if board.board_dict[coord] == None or board.board_dict[coord].split('_')[0] != color:
                                     board.change(coord,selection)
                                     sideChange(color)
                                     return
-            
-                if piece == 'KNIGHT':
-                    #Knight Logic
-                    letterNum = letterNumDict[selectedCoord[0]]
-                    possibleMoves = [] #List of strings for possible moves
-                    for possible in [1,2,-1,-2]:
-                        try:
-                            letter = numToLetter[letterNum + possible]
-                            num = int((abs(possible) / possible) * (3 - abs(possible)))
-                            #    gets if possible is + or -                gets inverted(2 to 1, 1 to 2)
-
-                            posNum = str(int(selectedCoord[1]) + num)
-                            negNum = str(int(selectedCoord[1]) - num)
-
-                            legal = [1,2,3,4,5,6,7,8]
-                            
-                            if int(posNum) in legal:
-                                possibleMoves.append(letter + posNum)
-                            
-                            if int(negNum) in legal:
-                                possibleMoves.append(letter + negNum)
-
-                        except KeyError:
-                            pass
-
-                    print(possibleMoves)
-
-                    for move in possibleMoves:
-                        if coord == move:
-                            if board.board_dict[coord] == None or board.board_dict[coord].split('_')[0] != color:
-                                board.change(coord,selection)
-                                sideChange(color)
-                                return
                     
+                    case 'BISHOP':
+                        #Logic for moving/taking
+                        possibleMoves = []
+                        for letterinc,numinc in [1,1,-1,-1],[1,-1,1,-1]:
+                            diagBool = True
+                            letterNum = letterNumDict[selectedCoord[0]]
+                            num = int(selectedCoord[1])
+                            while diagBool:
+                                try:
+                                    letterNum += letterinc
+                                    num += numinc
+                                    if 1 <= num <= 8:
+                                        diagBool = False
+
+                                    newCoord = numToLetter[letterNum] + str(num)
+                                    if board.board_dict[coord] != None:
+                                        #If theres a piece in the intended spot
+                                        diagBool = False
+
+                                    possibleMoves.append(newCoord)
+                                    
+                                except KeyError:
+                                    pass
+                        print(possibleMoves)
 
             if board.board_dict[coord] != None:
                 #Grabbing a piece; only runs if there is a piece in that square

@@ -169,17 +169,18 @@ def playerInputLogic(color):
                                             board.change(coord,selection)
                                             sideChange(color)
                                             return
-                                
+                            else:
+                                return
                         else:
                             #Pawn logic for moving and en passant
                             #If on starting square pawn can move two squares
                             if color == 'WHITE':
-                                if selectedCoord[1] == '2':
+                                if selectedCoord[1] == '2' and board.board_dict[str(selectedCoord[0] + str(int(selectedCoord[1]) + 1))] == None:
                                     possibleNums = [int(selectedCoord[1]) + 1, int(selectedCoord[1]) + 2]
                                 else:
                                     possibleNums = [int(selectedCoord[1]) + 1,None]
                             else:
-                                if selectedCoord[1] == '7':
+                                if selectedCoord[1] == '7' and board.board_dict[str(selectedCoord[0] + str(int(selectedCoord[1]) - 1))] == None:
                                     possibleNums = [int(selectedCoord[1]) - 1, int(selectedCoord[1]) - 2]
                                 else:
                                     possibleNums = [int(selectedCoord[1]) - 1,None]
@@ -227,13 +228,13 @@ def playerInputLogic(color):
                             except KeyError:
                                 pass
 
-                        print(possibleMoves)
-
                         for move in possibleMoves:
                             if coord == move:
                                 if board.board_dict[coord] == None or board.board_dict[coord].split('_')[0] != color:
                                     board.change(coord,selection)
                                     sideChange(color)
+                                    return
+                                else:
                                     return
                     
                     case 'BISHOP':
@@ -275,7 +276,7 @@ def playerInputLogic(color):
 
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()
-    FPS = 10
+    FPS = 13
 
     clientCount = 0
 

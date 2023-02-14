@@ -7,7 +7,6 @@ mixer.init()
 class Sounds:
     PIECE_DROP = mixer.Sound('Chess/PIECE_DROPPING.m4a')
 
-
 class Convert:
     numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
     letterNumDict = {'a':1,'b':2,'c':3,'d':4,'e':5,'f':6,'g':7,'h':8}
@@ -29,7 +28,6 @@ class Board:
         self.createBoard()
         self.setBoardFront()
         
-
     def createBoard(self):   
         """Creates the board dictionary and sets up all the coordinates"""
         letterCoord = string.ascii_lowercase[:8]
@@ -85,12 +83,16 @@ class Board:
             self.change(coord,piece)
 
 def setup():
-    global board,selected,playerVal,startingPos_dict
+    global board,selected,playerVal,startingPos_dict,wKc,wQc,bKc,bQc
     playerVal = 'WHITE'
     board = Board()
     startingPos = Board()
     startingPos_dict = startingPos.board_dict
     selected = False
+    wKc = True
+    wQc = True
+    bKc = True
+    bQc = True
     
 def draw_board():
     boardImage = pygame.image.load('Chess/ChessBoardWHITE.png').convert_alpha()
@@ -288,7 +290,6 @@ def playerInputLogic(color):
                                     #Move in that direction; straight line
                                     letterNum += letterinc
                                     num += numinc
-                                    print(num)
                                     if not (1 <= num <= 8) or not (1 <= letterNum <= 8):
                                         #If straight line goes off board
                                         break
@@ -322,7 +323,6 @@ def playerInputLogic(color):
                                     #Move in that direction; straight line
                                     letterNum += letterinc
                                     num += numinc
-                                    print(num)
                                     if not (1 <= num <= 8) or not (1 <= letterNum <= 8):
                                         #If straight line goes off board
                                         break
@@ -372,7 +372,6 @@ def playerInputLogic(color):
                         #King movement
                         possibleMoves = []
                         letterNum = Convert.letterNumDict[selectedCoord[0]]
-                        letterClicked = Convert.letterNumDict[coord[0]]
                         num = int(selectedCoord[1])
                         
                         possibleLetters = [letterNum, letterNum + 1,letterNum - 1]
@@ -384,12 +383,16 @@ def playerInputLogic(color):
                                 if not 1 <= num <= 8:
                                     continue
                                 possibleMoves.append(str(Convert.numToLetter[letter]) + str(num))
-                        
+
                         for possible in possibleMoves:
                             if coord == possible:
                                 if board.board_dict[coord] == None or chosenColor != color:
                                     board.change(coord,selection)
+                                    if color == 'WHITE':
+                                        wKc = False
+                                        wQc = False
                                     sideChange(color)
+                            
                         
 
                 return
@@ -401,10 +404,12 @@ def playerInputLogic(color):
                     selection = board.board_dict[coord]
                     selectedCoord = coord
                     board.change(coord,None)
-                    
 
-            
-                
+def castleBool(castleBool : bool, colorinp1,colorinp2):
+    if (castleBool) and (colorinp1 == colorinp2) and castlingOpen():
+
+def castlingOpen(dir,letter):
+
 
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()

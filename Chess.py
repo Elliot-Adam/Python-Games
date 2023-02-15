@@ -12,17 +12,18 @@ class Convert:
     letterNumDict = {'a':1,'b':2,'c':3,'d':4,'e':5,'f':6,'g':7,'h':8}
 
 class Piece:
-    selectedCoord = None
+    selectedCoord : str = None
     def __init__(self,color,name,coord):
-        self.color = color
-        self.name = name
-        self.coord = coord
-        self.image = f'{self.color}_{self.name}'
+        self.color : str = color
+        self.name : str = name
+        self.coord : str = coord
+        self.image : str = f'{self.color}_{self.name}'
 
-    def rules(self,coord,chosenColor):
+    def rules(self,chosenColor : str):
+        """Returns list of all the coordinates where the piece can move to; has a match case for all the rules of the pieces"""
         match self.name:
             case 'PAWN':
-                possibleMoves = self.pawnRules(coord,chosenColor)
+                possibleMoves = self.pawnRules(chosenColor)
                                 
             case 'KNIGHT':
                 possibleMoves = self.knightRules()
@@ -41,8 +42,12 @@ class Piece:
 
         return possibleMoves
 
-    def pawnRules(self,coord,chosenColor) -> list:
+    #Functions to determine which piece can move where;
+    #Could probably be moved outside of the class,
+    #but I think it looks neater
+    def pawnRules(self,chosenColor : str) -> list:
         #Pawn Logic for taking
+        possibleMoves = []
         if chosenColor != None:
             if chosenColor != self.color:
                 #Can only take if not the same color
@@ -196,7 +201,7 @@ class Piece:
                     continue
                 possibleMoves.append(str(Convert.numToLetter[letter]) + str(num))
 
-        possibleMoves.remove(selectedCoord)
+        possibleMoves.remove(self.selectedCoord)
         return possibleMoves
 
 class Board:
@@ -270,8 +275,8 @@ class Board:
             piece = Piece(color,'PAWN',coord)
             self.change(coord,piece)
 
-def setup():
-    global board,selected,playerVal,startingPos_dict,wKc,wQc,bKc,bQc
+def setup() -> None:
+    global board,selected,playerVal,startingPos_dict,wKc,wQc,bKc,bQc,inCheckbool,inCheckcolor,checkingPiece
     playerVal = 'WHITE'
     board = Board()
     startingPos = Board()
@@ -281,13 +286,16 @@ def setup():
     wQc = True
     bKc = True
     bQc = True
+    inCheckbool = False
+    inCheckcolor = None
+    checkingPiece = None
     
-def draw_board():
+def draw_board() -> None:
     boardImage = pygame.image.load('Chess/ChessBoardWHITE.png').convert_alpha()
     scaled_boardImage = pygame.transform.scale(boardImage,(SCREEN_LENGTH,SCREEN_HEIGHT))
     SCREEN.blit(scaled_boardImage,(0,0))
 
-def draw_pieces():
+def draw_pieces() -> None:
     """Draws the pieces to the board"""
     for coord,value in board.board_dict.items():
         if value == None:
@@ -298,13 +306,13 @@ def draw_pieces():
         SCREEN.blit(scaled_img,(rect.x,rect.y))
 
     if selected:
-        highlightLegalMoves()
         x,y = pygame.mouse.get_pos()
         img = pygame.image.load('Chess/{}.png'.format(selection.image))
         scaled_img = pygame.transform.scale(img,(rect.width - 10,rect.height - 10))
         SCREEN.blit(scaled_img,(x,y))
 
-def coordClicked(x,y) -> str:
+def coordClicked(x : int,y : int) -> str:
+    """Grabs the coordinate on the chess board based on the input"""
     num = 8 - ((y - board.blankBuffer) // board.SQHEIGHT)
     #Get the number by reversing the distance from the start of the board to the end of the board and dividing
     #By the square size to end up with the number between 1 and 8
@@ -313,18 +321,20 @@ def coordClicked(x,y) -> str:
     coord = letter + str(int(num))
     return coord
 
-def sideChange(color):
+def sideChange(color : str) -> None:
     global playerVal,selected,lastCoord,lastPiece
     if color == 'WHITE':
         playerVal = 'BLACK'
     else:
         playerVal = 'WHITE'
-    lastCoord = selectedCoord
+    lastCoord = selection.selectedCoord
     lastPiece = selection
     selected = False
 
-def playerInputLogic(color):
-    global playerVal,selected,selection,selectedCoord,lastCoord,lastPiece
+def playerInputLogic(color : str) -> None:
+    global playerVal,selected,selection,lastCoord,lastPiece
+    #selection gets defined in here
+    #selection = Piece object of the piece that the player is currently holding
     if pygame.mouse.get_pressed()[0]:
         xrange = range(board.textBuffer,board.BOARD_LENGTH + board.textBuffer + 1)
         yrange = range(board.blankBuffer,board.blankBuffer + board.BOARD_HEIGHT + 1)
@@ -341,13 +351,13 @@ def playerInputLogic(color):
 
             if selected:
                 #Putting down a piece if holding a piece
-                if coord == selectedCoord:
+                if coord == selection.selectedCoord:
                     #You can put a piece back without it switching turns
                     board.change(coord,selection)
                     selected = False
                     return   
                 #Selection is the piece object that the player is currently holding
-                possibleMoves = selection.rules(coord,chosenColor)
+                possibleMoves = legalMoves(color,chosenColor)
                 for possible in possibleMoves:
                     if chosenColor != color:
                         if coord == possible:
@@ -357,8 +367,10 @@ def playerInputLogic(color):
                             break
                 else:
                     #Code for what happens if the chosen spot isn't legal
-                    pass
-            
+                    #Puts back the piece
+                    selected = False
+                    board.change(selection.selectedCoord,selection)
+                    selection = None
             else:
                 if board.board_dict[coord] != None:
                     #Grabbing a piece, when you don't have one; only runs if there is a piece in that square
@@ -366,39 +378,82 @@ def playerInputLogic(color):
                         selected = True
                         selection = board.board_dict[coord]
                         board.board_dict[coord].selectedCoord = coord 
-                        selectedCoord = coord
                         board.change(coord,None)
 
-def highlightLegalMoves():
-    possibleMoves : list = selection.rules(selection.color,selection.selectedCoord)
-    if selection.name == 'PAWN': 
-        possibleMoves.extend(selection.pawnRules(None,None))
+    if selected:
+        highlightMoves(legalMoves(color,None))
+
+def legalMoves(color : str,chosenColor : str) -> list:
+    if not inCheckbool:
+        checkInfo = checked()
+        if checkInfo[0]:
+            inCheckbool = True
+            checkingPiece = checkInfo[1]
+            if checkInfo[1].color == 'WHITE':
+                inCheckcolor = 'BLACK'
+            else:
+                inCheckcolor = 'WHITE'
+
+
+    if not (inCheckbool and inCheckcolor == color):
+        possibleMoves = selection.rules(chosenColor)
+
+    else:
+        #Code for what happens if you are in check
+        checkingPiece : Piece = checked()[1]
+        possibleMoves = []
+        for coord,piece in board.board_dict.items():
+            if piece != None:
+                piece.selectedCoord = coord
+                possibleMoves : list = piece.rules(piece.color)
+                if piece.name == 'PAWN': 
+                    possibleMoves.extend(piece.pawnRules(None))
+                #Now we have a list of all the possible moves this piece could make
+                for move in possibleMoves:
+                    if move == checkingPiece.coord:
+                        #See if you can take the piece
+                        if piece.name == 'PAWN':
+                            if not (move in piece.pawnRules(None)):
+                                #Make sure that the move is a move that the pawn can make by taking
+                                continue
+                    
+                    if move in checkingPiece.rules(checkingPiece.color):
+                        possibleMoves.append(move)
+
+    return possibleMoves        
+                
+def highlightMoves(inputList : list) -> None:
     dot = pygame.image.load('Chess/dot.png')
-    for move in possibleMoves:
+    for move in inputList:
         #Move = coordinate like h3
-        if board.board_dict[move] == None or board.board_dict[move].color != selection.color:
+        if board.board_dict[move] == None or (board.board_dict[move].color != selection.color):
             rect : pygame.Rect = board.rect_dict[move]
             dot = pygame.transform.scale(dot,(rect.width - 10,rect.height - 10))
             SCREEN.blit(dot,rect)
 
-def checked():
+def checked() -> tuple:
     for coord,piece in board.board_dict.items():
-        possibleMoves : list = piece.rules(piece.color,coord)
-        if selection.name == 'PAWN': 
-            possibleMoves.extend(piece.pawnRules(None,None))
-        #Now we have a list of all the possible moves this piece could make
-        for move in possibleMoves:
-            if board.board_dict[move] == None:
-                continue
+        if piece != None:
+            piece.selectedCoord = coord
+            possibleMoves : list = piece.rules(piece.color)
+            if piece.name == 'PAWN': 
+                possibleMoves.extend(piece.pawnRules(None))
+            #Now we have a list of all the possible moves this piece could make
+            for move in possibleMoves:
+                if board.board_dict[move] == None:
+                    continue
 
-            if board.board_dict[move].color == piece.color:
-                continue
+                if board.board_dict[move].color == piece.color:
+                    continue
 
-            if board.board_dict[move].name != 'KING':
-                continue
+                if board.board_dict[move].name != 'KING':
+                    continue
 
-            #Now we have all the moves that could take the king next turn
-            print('Checked')
+                #Now we have all the moves that could take the king next turn
+                piece.selectedCoord = None
+                return (True,board.board_dict[move])
+    return (False,Piece(None,None,None))
+        
 
 
 if __name__ == '__main__':
@@ -421,7 +476,6 @@ if __name__ == '__main__':
         playerInputLogic(playerVal)
         draw_board()
         draw_pieces()
-        checked()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 isRunning = False

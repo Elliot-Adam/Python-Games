@@ -5,7 +5,9 @@ pygame.init()
 mixer.init()
 
 class Sounds:
-    PIECE_DROP = mixer.Sound('Chess/PIECE_DROPPING.m4a')
+    PIECE_DROP = mixer.Sound('Chess/SOUND_PIECE_DROPPING.m4a')
+    PIECE_TAKE = mixer.Sound('Chess/SOUND_PIECE_TAKEING.m4a')
+    PROMOTION = mixer.Sound('Chess/SOUND_PROMOTION.m4a')
 
 class Convert:
     numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
@@ -17,7 +19,11 @@ class Piece:
         self.color : str = color
         self.name : str = name
         self.coord : str = coord
-        self.image : str = f'{self.color}_{self.name}'
+        self.image : str = f'PIECE_{self.color}_{self.name}'
+        if self.name == 'ROOK':
+            self.castleBool = True
+        else:
+            self.castleBool = False
 
     def rules(self,chosenColor : str):
         """Returns list of all the coordinates where the piece can move to; has a match case for all the rules of the pieces"""
@@ -92,7 +98,7 @@ class Piece:
             #Moving logic for pawns; accounts for opening double move
             letter = self.selectedCoord[0]
             possibleMoves = [letter + str(num) for num in possibleNums]
-
+  
         return possibleMoves
 
     def knightRules(self) -> list:
@@ -204,6 +210,51 @@ class Piece:
         possibleMoves.remove(self.selectedCoord)
         return possibleMoves
 
+
+    #All special rules into functions
+    def castling(self,castleBool,dir,rookCastlebool):
+        pass
+
+    def enPassant(self):
+        pass
+
+    def promotion(self):
+        rect : pygame.Rect = board.rect_dict[self.coord] 
+        pygame.draw.rect(SCREEN,(255,255,255),rect)
+        for num,img in enumerate(['QUEEN','ROOK','KNIGHT','BISHOP'],start= 1):
+            newimgstr = f'Chess/{self.color}_{img}.png'
+            newimg = pygame.image.load(newimgstr)
+            scaled_img = pygame.transform.scale(newimg,(rect.width / 2 ,rect.height / 2))
+            width , height = (rect.width / 2),(rect.height / 2)
+            topLrect = pygame.Rect(rect.x,rect.y,width,height)
+            topRrect = pygame.Rect(rect.x + width,rect.y,width,height)
+            bottomLrect = pygame.Rect(rect.x,rect.y + height,width,height)
+            bottomRrect = pygame.Rect(rect.x + width,rect.y + height,width,height)
+            match num:
+                case 1:
+                #Top Left
+                    newRect = topLrect
+                case 2:
+                #Top Right
+                    newRect = topRrect
+
+                case 3:
+                #Bottom Left
+                    newRect = bottomLrect
+                
+                case 4:
+                #Bottom Right
+                    newRect = bottomRrect
+
+            SCREEN.blit(scaled_img,newRect)
+
+    #Other functions
+    def opposite(self):
+        if self.color == 'WHITE':
+            return 'BLACK'
+        else:
+            return 'WHITE'
+
 class Board:
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
@@ -236,7 +287,21 @@ class Board:
     def change(self,coord:str,piece:Piece):
         """The coordinate should be like h4 or e5 while the piece will be the name of the image file so like
         WHITE_PAWN or BLACK_QUEEN"""
+        global promotion,promotingPiece
+        if self.board_dict[coord] != None:
+            mixer.Sound.play(Sounds.PIECE_TAKE)
+        else:
+            mixer.Sound.play(Sounds.PIECE_DROP)
         self.board_dict[coord] = piece
+        if isinstance(piece,Piece):
+            piece.coord = coord
+            #Code for promotion
+            if piece.name == 'PAWN':
+                if piece.coord[1] == '8' or piece.coord[1] == '1':
+                    #8 and 1 are impossible to get to if you are the same color
+                    promotion = True
+                    promotingPiece = piece
+                    mixer.Sound.play(Sounds.PROMOTION)
 
     def setBoardFront(self):
         self.setBoardPieces('WHITE')
@@ -277,6 +342,7 @@ class Board:
 
 def setup() -> None:
     global board,selected,playerVal,startingPos_dict,wKc,wQc,bKc,bQc,inCheckbool,inCheckcolor,checkingPiece
+    global promotion,promotingPiece
     playerVal = 'WHITE'
     board = Board()
     startingPos = Board()
@@ -289,9 +355,11 @@ def setup() -> None:
     inCheckbool = False
     inCheckcolor = None
     checkingPiece = None
+    promotion = False
+    promotingPiece = None
     
 def draw_board() -> None:
-    boardImage = pygame.image.load('Chess/ChessBoardWHITE.png').convert_alpha()
+    boardImage = pygame.image.load('Chess/BOARD_WHITE.png').convert_alpha()
     scaled_boardImage = pygame.transform.scale(boardImage,(SCREEN_LENGTH,SCREEN_HEIGHT))
     SCREEN.blit(scaled_boardImage,(0,0))
 
@@ -361,7 +429,6 @@ def playerInputLogic(color : str) -> None:
                 for possible in possibleMoves:
                     if chosenColor != color:
                         if coord == possible:
-                            mixer.Sound.play(Sounds.PIECE_DROP)
                             board.change(coord,selection)
                             sideChange(color)    
                             break
@@ -381,9 +448,13 @@ def playerInputLogic(color : str) -> None:
                         board.change(coord,None)
 
     if selected:
-        highlightMoves(legalMoves(color,None))
+        moves = legalMoves(color,None)
+        if selection.name == 'PAWN':
+            moves.extend(legalMoves(selection.color,selection.opposite()))
+        highlightMoves(moves)
 
 def legalMoves(color : str,chosenColor : str) -> list:
+    global inCheckbool,inCheckcolor,checkingPiece
     if not inCheckbool:
         checkInfo = checked()
         if checkInfo[0]:
@@ -400,7 +471,6 @@ def legalMoves(color : str,chosenColor : str) -> list:
 
     else:
         #Code for what happens if you are in check
-        checkingPiece : Piece = checked()[1]
         possibleMoves = []
         for coord,piece in board.board_dict.items():
             if piece != None:
@@ -423,13 +493,22 @@ def legalMoves(color : str,chosenColor : str) -> list:
     return possibleMoves        
                 
 def highlightMoves(inputList : list) -> None:
-    dot = pygame.image.load('Chess/dot.png')
+    smalldotimg = pygame.image.load('Chess/DOT_SMALL.png')
+    bigdotimg = pygame.image.load('Chess/DOT_BIG.png')
     for move in inputList:
         #Move = coordinate like h3
-        if board.board_dict[move] == None or (board.board_dict[move].color != selection.color):
+        if board.board_dict[move] == None:
             rect : pygame.Rect = board.rect_dict[move]
-            dot = pygame.transform.scale(dot,(rect.width - 10,rect.height - 10))
-            SCREEN.blit(dot,rect)
+            smalldot = pygame.transform.scale(smalldotimg,(rect.width - 10,rect.height - 10))
+            SCREEN.blit(smalldot,rect)
+        
+        elif board.board_dict[move].color != selection.color:
+            offset = 5
+            rect : pygame.Rect = board.rect_dict[move].copy()
+            rect.x -= offset
+            rect.y -= offset
+            bigdot = pygame.transform.scale(bigdotimg,(rect.width,rect.height))
+            SCREEN.blit(bigdot,rect)
 
 def checked() -> tuple:
     for coord,piece in board.board_dict.items():
@@ -454,18 +533,16 @@ def checked() -> tuple:
                 return (True,board.board_dict[move])
     return (False,Piece(None,None,None))
         
-
-
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()
-    FPS = 13
+    FPS = 15
 
     clientCount = 0
 
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
     name = 'Chess'
-    icon = pygame.image.load('Chess/WHITE_PAWN.png')
+    icon = pygame.image.load('Chess/PIECE_WHITE_PAWN.png')
 
     SCREEN = pygame.display.set_mode((SCREEN_LENGTH,SCREEN_HEIGHT))
     pygame.display.set_caption(name)
@@ -473,9 +550,11 @@ if __name__ == '__main__':
     isRunning = True
     setup()
     while isRunning:
-        playerInputLogic(playerVal)
         draw_board()
+        playerInputLogic(playerVal)
         draw_pieces()
+        if promotion:
+            promotingPiece.promotion()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 isRunning = False

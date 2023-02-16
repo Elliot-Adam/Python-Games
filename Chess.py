@@ -8,6 +8,7 @@ class Sounds:
     PIECE_DROP = mixer.Sound('Chess/SOUND_PIECE_DROPPING.m4a')
     PIECE_TAKE = mixer.Sound('Chess/SOUND_PIECE_TAKEING.m4a')
     PROMOTION = mixer.Sound('Chess/SOUND_PROMOTION.m4a')
+    CASTLING = mixer.Sound('Chess/SOUND_CASTLING.m4a')
 
 class Convert:
     numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
@@ -212,8 +213,30 @@ class Piece:
 
 
     #All special rules into functions
-    def castling(self,castleBool,dir,rookCastlebool):
-        pass
+    def castling(self):
+        if self.name == 'KING':
+            #You can only run castling if you are a king piece
+            possibleMoves = []
+            if self.color == 'WHITE':
+                for piece in [board.board_dict['a1'],board.board_dict['h1']]:
+                    #Checks castling bools and ensures that there is a piece in the spot
+                    if piece == None or piece.name != 'ROOK':
+                        continue
+                    elif piece.castlingBool:
+                        #All the white rooks that haven't moved yet
+                        if piece.coord[0] > self.coord[0]:
+                            #Rook on h1
+                            if board.board_dict['f1'] == None and board.board_dict['g1'] == None:
+                                possibleMoves.append('g1')
+                                board.board_dict['f1'] = piece
+                                mixer.Sound.play(Sounds.CASTLING)
+                            
+                        else:
+                            #Rook on a1
+                            if board.board_dict['b1'] == None and board.board_dict['c1'] == None and board.board_dict['d1'] == None:
+                                possibleMoves.append('c1')
+                                board.board_dict['d1'] = piece
+                                mixer.Sound.play(Sounds.CASTLING)
 
     def enPassant(self):
         pass
@@ -341,20 +364,17 @@ class Board:
             self.change(coord,piece)
 
 def setup() -> None:
-    global board,selected,playerVal,startingPos_dict,wKc,wQc,bKc,bQc,inCheckbool,inCheckcolor,checkingPiece
-    global promotion,promotingPiece
+    global board,selected,playerVal,startingPos_dict,inCheckbool,inCheckcolor,checkingPiece
+    global promotion,promotingPiece, checkedKing
     playerVal = 'WHITE'
     board = Board()
     startingPos = Board()
     startingPos_dict = startingPos.board_dict
     selected = False
-    wKc = True
-    wQc = True
-    bKc = True
-    bQc = True
     inCheckbool = False
     inCheckcolor = None
     checkingPiece = None
+    checkedKing = None
     promotion = False
     promotingPiece = None
     
@@ -468,6 +488,7 @@ def legalMoves(color : str,chosenColor : str) -> list:
 
     if not (inCheckbool and inCheckcolor == color):
         possibleMoves = selection.rules(chosenColor)
+        
 
     else:
         #Code for what happens if you are in check
@@ -475,21 +496,18 @@ def legalMoves(color : str,chosenColor : str) -> list:
         for coord,piece in board.board_dict.items():
             if piece != None:
                 piece.selectedCoord = coord
-                possibleMoves : list = piece.rules(piece.color)
-                if piece.name == 'PAWN': 
-                    possibleMoves.extend(piece.pawnRules(None))
+                movesOfPiece : list = piece.rules(None)
+                
                 #Now we have a list of all the possible moves this piece could make
-                for move in possibleMoves:
+                for move in movesOfPiece:
                     if move == checkingPiece.coord:
                         #See if you can take the piece
-                        if piece.name == 'PAWN':
-                            if not (move in piece.pawnRules(None)):
-                                #Make sure that the move is a move that the pawn can make by taking
-                                continue
-                    
-                    if move in checkingPiece.rules(checkingPiece.color):
                         possibleMoves.append(move)
-
+                    
+                    #See if you can get in the way of the check
+                    letterDist = abs(Convert.letterNumDict[checkedKing.coord[0]] - Convert.letterNumDict[checkingPiece.coord[0]])
+                    numDist = abs(int(checkedKing.coord[1]) - int(checkingPiece.coord[1]))
+        print(possibleMoves)
     return possibleMoves        
                 
 def highlightMoves(inputList : list) -> None:
@@ -511,6 +529,7 @@ def highlightMoves(inputList : list) -> None:
             SCREEN.blit(bigdot,rect)
 
 def checked() -> tuple:
+    global checkedKing
     for coord,piece in board.board_dict.items():
         if piece != None:
             piece.selectedCoord = coord
@@ -527,10 +546,10 @@ def checked() -> tuple:
 
                 if board.board_dict[move].name != 'KING':
                     continue
-
+                
                 #Now we have all the moves that could take the king next turn
-                piece.selectedCoord = None
-                return (True,board.board_dict[move])
+                checkedKing = board.board_dict[move]
+                return (True,piece)
     return (False,Piece(None,None,None))
         
 if __name__ == '__main__':

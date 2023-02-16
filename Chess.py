@@ -610,11 +610,12 @@ def playerInputLogic(color : str) -> None:
                 #Selection is the piece object that the player is currently holding
                 possibleMoves = legalMoves(color,chosenColor)
                 for possible in possibleMoves:
-                    if chosenColor != color:
-                        if coord == possible:
-                            board.change(coord,selection)
-                            sideChange(color)    
-                            break
+                    if possible in selection.rules(None) or possible in selection.rules(color):
+                        if chosenColor != color:
+                            if coord == possible:
+                                board.change(coord,selection)
+                                sideChange(color)    
+                                break
                 else:
                     #Code for what happens if the chosen spot isn't legal
                     #Puts back the piece
@@ -717,6 +718,14 @@ def checked() -> tuple:
                 return (True,piece)
     return (False,Piece(None,None,None))
         
+def coveredMoves(color) -> list:
+    possibleMoves = []
+    for piece in board.board_dict.values():
+        if piece.color == color:
+            possibleMoves.extend(piece.rules(None))
+
+    return possibleMoves
+
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()
     FPS = 14

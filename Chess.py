@@ -278,6 +278,172 @@ class Piece:
         else:
             return 'WHITE'
 
+    def blockCheck(self):
+        if self.name == 'KING' and inCheckcolor == self.color:
+            #Can only use it if you are a king in check
+            if checkingPiece.name != 'KNIGHT' and checkingPiece != 'PAWN':
+                #Can only block if piece isn't a knight or a pawn
+                match checkingPiece.name:
+                    case 'BISHOP':
+                        #Copied from rules; modified a bit
+                        for letterinc,numinc in [(1,1),(1,-1),(-1,1),(-1,-1)]:
+                            diagMoves = []
+                            found = False
+                            letterNum = Convert.letterNumDict[checkingPiece.selectedCoord[0]]
+                            num = int(checkingPiece.selectedCoord[1])
+                            while not found:
+                                try:
+                                    #Move in that diagonal
+                                    letterNum += letterinc
+                                    num += numinc
+                                    if not 1 <= num <= 8:
+                                        #If diagonal goes off board
+                                        break
+
+                                    newCoord = Convert.numToLetter[letterNum] + str(num)
+                                    if board.board_dict[newCoord] != None:
+                                        #If theres a piece in the intended spot
+                                        newPiece = board.board_dict[newCoord]
+                                        if newPiece.name == 'KING' and newPiece.color != checkingPiece.color:
+                                            #If hitting our king
+                                            found = True
+                                            break
+                                        
+
+                                    diagMoves.append(newCoord)
+                                    
+                                except KeyError:
+                                    pass
+                            
+                            if found:
+                                break
+
+                            else:
+                                diagMoves.clear()
+
+                        return diagMoves
+                    
+                    case 'ROOK':
+                        #Logic for rook movement and captures
+                        for letterinc,numinc in [(0,1),(1,0),(-1,0),(0,-1)]:
+                            lineMoves = []
+                            found = False
+                            letterNum = Convert.letterNumDict[checkingPiece.selectedCoord[0]]
+                            num = int(checkingPiece.selectedCoord[1])
+                            while not found:
+                                try:
+                                    #Move in that direction; straight line
+                                    letterNum += letterinc
+                                    num += numinc
+                                    if not (1 <= num <= 8) or not (1 <= letterNum <= 8):
+                                        #If straight line goes off board
+                                        break
+
+                                    newCoord = Convert.numToLetter[letterNum] + str(num)
+                                    newPiece = board.board_dict[newCoord]
+                                    if newPiece.name == 'KING' and newPiece.color != checkingPiece.color:
+                                            #If hitting our king
+                                            found = True
+                                            break
+                                        
+
+                                    lineMoves.append(newCoord)
+                                    
+                                except KeyError:
+                                    pass
+                                    
+                            if found:
+                                break
+
+                            else:
+                                lineMoves.clear()
+
+                        return lineMoves
+                    
+                    case 'QUEEN':
+                        #Copied from bishop / rook
+                        for letterinc,numinc in [(1,1),(1,-1),(-1,1),(-1,-1)]:
+                            #Bishop stuff
+                            diagMoves = []
+                            found = False
+                            letterNum = Convert.letterNumDict[checkingPiece.selectedCoord[0]]
+                            num = int(checkingPiece.selectedCoord[1])
+                            while not found:
+                                try:
+                                    #Move in that diagonal
+                                    letterNum += letterinc
+                                    num += numinc
+                                    if not 1 <= num <= 8:
+                                        #If diagonal goes off board
+                                        break
+
+                                    newCoord = Convert.numToLetter[letterNum] + str(num)
+                                    if board.board_dict[newCoord] != None:
+                                        #If theres a piece in the intended spot
+                                        newPiece = board.board_dict[newCoord]
+                                        if newPiece is None:
+                                            continue
+
+                                        if newPiece.name == 'KING' and newPiece.color != checkingPiece.color:
+                                            #If hitting our king
+                                            found = True
+                                            break
+                                        
+
+                                    diagMoves.append(newCoord)
+                                    
+                                except KeyError:
+                                    pass
+                            
+                            if found:
+                                break
+
+                            else:
+                                diagMoves.clear()
+
+                        for letterinc,numinc in [(0,1),(1,0),(-1,0),(0,-1)]:
+                                lineMoves = []
+                                found = False
+                                letterNum = Convert.letterNumDict[checkingPiece.selectedCoord[0]]
+                                num = int(checkingPiece.selectedCoord[1])
+                                while not found:
+                                    try:
+                                        #Move in that direction; straight line
+                                        letterNum += letterinc
+                                        num += numinc
+                                        if not (1 <= num <= 8) or not (1 <= letterNum <= 8):
+                                            #If straight line goes off board
+                                            break
+
+                                        newCoord = Convert.numToLetter[letterNum] + str(num)
+                                        newPiece = board.board_dict[newCoord]
+                                        if newPiece is None:
+                                            continue
+
+                                        if newPiece.name == 'KING' and newPiece.color != checkingPiece.color:
+                                                #If hitting our king
+                                                found = True
+                                                break
+                                            
+
+                                        lineMoves.append(newCoord)
+                                        
+                                    except KeyError:
+                                        pass
+
+                                if found:
+                                    break
+                                
+                                else:
+                                    lineMoves.clear()
+
+                        moves = diagMoves[:]
+                        moves.extend(lineMoves)
+                        return moves                            
+
+                        
+
+
 class Board:
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
@@ -480,10 +646,7 @@ def legalMoves(color : str,chosenColor : str) -> list:
         if checkInfo[0]:
             inCheckbool = True
             checkingPiece = checkInfo[1]
-            if checkInfo[1].color == 'WHITE':
-                inCheckcolor = 'BLACK'
-            else:
-                inCheckcolor = 'WHITE'
+            inCheckcolor = checkingPiece.opposite()
 
 
     if not (inCheckbool and inCheckcolor == color):
@@ -494,20 +657,25 @@ def legalMoves(color : str,chosenColor : str) -> list:
         #Code for what happens if you are in check
         possibleMoves = []
         for coord,piece in board.board_dict.items():
-            if piece != None:
-                piece.selectedCoord = coord
-                movesOfPiece : list = piece.rules(None)
+            if piece == None or piece.color == checkingPiece.color:
+                continue
+
+            piece.selectedCoord = coord
+            movesOfPieceTake : list = piece.rules(color)
+            movesOfPieceMove : list = piece.rules(None)
+            #Now we have a list of all the possible moves this piece could make
+            for move in movesOfPieceTake:
+                if move == checkingPiece.coord:
+                    #See if you can take the piece
+                    possibleMoves.append(move)
                 
-                #Now we have a list of all the possible moves this piece could make
-                for move in movesOfPiece:
-                    if move == checkingPiece.coord:
-                        #See if you can take the piece
-                        possibleMoves.append(move)
+            for move in movesOfPieceMove:
+                #See if you can get in the way of the check
+                moves = checkedKing.blockCheck()
+                if move in moves:
+                    print('APPENDING',piece.name + piece.coord, move)
+                    possibleMoves.append(move)
                     
-                    #See if you can get in the way of the check
-                    letterDist = abs(Convert.letterNumDict[checkedKing.coord[0]] - Convert.letterNumDict[checkingPiece.coord[0]])
-                    numDist = abs(int(checkedKing.coord[1]) - int(checkingPiece.coord[1]))
-        print(possibleMoves)
     return possibleMoves        
                 
 def highlightMoves(inputList : list) -> None:
@@ -554,7 +722,7 @@ def checked() -> tuple:
         
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()
-    FPS = 15
+    FPS = 14
 
     clientCount = 0
 

@@ -441,9 +441,6 @@ class Piece:
                         moves.extend(lineMoves)
                         return moves                            
 
-                        
-
-
 class Board:
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500

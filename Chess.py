@@ -529,7 +529,7 @@ class Board:
 
 def setup() -> None:
     global board,selected,playerVal,startingPos_dict,inCheckbool,inCheckcolor,checkingPiece
-    global promotion,promotingPiece, checkedKing
+    global promotion,promotingPiece, checkedKing, held
     playerVal = 'WHITE'
     board = Board()
     startingPos = Board()
@@ -541,6 +541,7 @@ def setup() -> None:
     checkedKing = None
     promotion = False
     promotingPiece = None
+    held = False
     
 def draw_board() -> None:
     boardImage = pygame.image.load('Chess/BOARD_WHITE.png').convert_alpha()
@@ -565,13 +566,45 @@ def draw_pieces() -> None:
 
 def coordClicked(x : int,y : int) -> str:
     """Grabs the coordinate on the chess board based on the input"""
-    num = 8 - ((y - board.blankBuffer) // board.SQHEIGHT)
+    num = int(8 - ((y - board.blankBuffer) // board.SQHEIGHT))
     #Get the number by reversing the distance from the start of the board to the end of the board and dividing
     #By the square size to end up with the number between 1 and 8
     letter = Convert.numToLetter[(((x - board.textBuffer) // board.SQLENGTH) + 1)]
     #Pretty much same thing down here except it gets converted back into a letter
-    coord = letter + str(int(num))
+    
+    coord = letter + str(num)
     return coord
+
+def quarterCoordClicked(x : int,y : int, coord: str) -> str:
+    """Used to find what portion of the square the player clicked during a promotion"""
+    rect : pygame.Rect = board.rect_dict[coord]
+    possible = ['QUEEN','KNIGHT','ROOK','BISHOP']
+    if x > (rect.x + (rect.width / 2)):
+        #In second half of rectangle
+        possible.remove('QUEEN')
+        possible.remove('KNIGHT')
+        if y > (rect.y + (rect.height / 2)):
+            #Bottom Right
+            possible.remove('ROOK')
+
+        else:
+            #Top Right
+            possible.remove('BISHOP')
+
+    else:
+        #In first half of rectangle
+        possible.remove('ROOK')
+        possible.remove('BISHOP')
+        if y > (rect.y + (rect.height / 2)):
+            #Bottom Left
+            possible.remove('QUEEN')
+
+        else:
+            #Top Left
+            possible.remove('KNIGHT')
+
+    assert len(possible) == 1, 'More than one option legal'
+    return possible[0]
 
 def sideChange(color : str) -> None:
     global playerVal,selected,lastCoord,lastPiece
@@ -584,15 +617,26 @@ def sideChange(color : str) -> None:
     selected = False
 
 def playerInputLogic(color : str) -> None:
-    global playerVal,selected,selection,lastCoord,lastPiece
+    global playerVal,selected,selection,lastCoord,lastPiece, held, promotion, promotingPiece
     #selection gets defined in here
     #selection = Piece object of the piece that the player is currently holding
-    if pygame.mouse.get_pressed()[0]:
+    if pygame.mouse.get_pressed()[0] and not held:
+        held = True
         xrange = range(board.textBuffer,board.BOARD_LENGTH + board.textBuffer + 1)
         yrange = range(board.blankBuffer,board.blankBuffer + board.BOARD_HEIGHT + 1)
         if pygame.mouse.get_pos()[0] in xrange and pygame.mouse.get_pos()[1] in yrange:
             x,y = pygame.mouse.get_pos()
             coord = coordClicked(x,y)
+            if int(coord[1]) not in range(1,9):
+                return
+
+            if promotion:
+                if coord == promotingPiece.coord:
+                    selectedPiece = quarterCoordClicked(x,y,coord)
+                    board.board_dict[coord] = Piece(board.board_dict[coord].color,selectedPiece,coord)
+                    promotion = False
+                    promotingPiece = None
+
             if board.board_dict[coord] != None:
                 #If the chosen spot isn't empty, grab the color of the piece you clicked
                 chosenColor = board.board_dict[coord].color
@@ -749,6 +793,9 @@ if __name__ == '__main__':
         if promotion:
             promotingPiece.promotion()
         for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONUP:
+                held = False
+
             if event.type == pygame.QUIT:
                 isRunning = False
         pygame.display.update()

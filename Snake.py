@@ -1,6 +1,7 @@
 import pygame
 import random
 import math
+import time
 pygame.init()
 
 def start():
@@ -64,15 +65,20 @@ def PlayerInput():
     if not game_over:
         if (keys[pygame.K_w] or keys[pygame.K_UP]) and (dir != 'DOWN' or alone):
             dir = 'UP'
+            return
 
         if (keys[pygame.K_s] or keys[pygame.K_DOWN]) and (dir != 'UP' or alone):
             dir = 'DOWN'
+            return
 
         if (keys[pygame.K_a] or keys[pygame.K_LEFT]) and (dir != 'RIGHT' or alone):
             dir = 'LEFT'
+            return
 
         if (keys[pygame.K_d] or keys[pygame.K_RIGHT]) and (dir != 'LEFT' or alone):
             dir = 'RIGHT'
+            return
+            
     else:
         if keys[pygame.K_q] or keys[pygame.K_x]:
             isRunning = False

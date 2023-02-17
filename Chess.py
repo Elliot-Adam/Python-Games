@@ -244,10 +244,11 @@ class Piece:
     def promotion(self):
         rect : pygame.Rect = board.rect_dict[self.coord] 
         pygame.draw.rect(SCREEN,(255,255,255),rect)
+        offset = 5
         for num,img in enumerate(['QUEEN','ROOK','KNIGHT','BISHOP'],start= 1):
-            newimgstr = f'Chess/{self.color}_{img}.png'
+            newimgstr = f'Chess/PIECE_{self.color}_{img}.png'
             newimg = pygame.image.load(newimgstr)
-            scaled_img = pygame.transform.scale(newimg,(rect.width / 2 ,rect.height / 2))
+            scaled_img = pygame.transform.scale(newimg,(rect.width / 2 - offset ,rect.height / 2 - offset))
             width , height = (rect.width / 2),(rect.height / 2)
             topLrect = pygame.Rect(rect.x,rect.y,width,height)
             topRrect = pygame.Rect(rect.x + width,rect.y,width,height)
@@ -610,7 +611,6 @@ def playerInputLogic(color : str) -> None:
                 #Selection is the piece object that the player is currently holding
                 possibleMoves = legalMoves(color,chosenColor)
                 for possible in possibleMoves:
-                    if possible in selection.rules(None) or possible in selection.rules(color):
                         if chosenColor != color:
                             if coord == possible:
                                 board.change(coord,selection)

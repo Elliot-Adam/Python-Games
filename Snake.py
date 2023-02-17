@@ -24,7 +24,7 @@ def logic():
             game_over = True
 
 
-    if distance(playerX,playerY,fruitX,fruitY) < playerWidth + 2:
+    if distance(playerX,playerY,fruitX,fruitY) < playerWidth:
         fruitRepos()
         score += 1
         if alone:
@@ -42,7 +42,8 @@ def logic():
         case 'RIGHT':
             playerX += speed
 
-    if playerX <= 15 or playerX + playerWidth >= SCREEN_LENGTH - 15 or playerY <= 15 or playerY + playerHeight >= SCREEN_HEIGHT - 15:
+    wallBuffer = 11
+    if playerX <= wallBuffer or playerX + playerWidth >= SCREEN_LENGTH - wallBuffer or playerY <= wallBuffer or playerY + playerHeight >= SCREEN_HEIGHT - wallBuffer:
         #Changes values so player can see snake after runs into wall
         if playerX == -1:
             playerX += 1
@@ -104,8 +105,16 @@ def draw():
         pygame.draw.rect(SCREEN,(0,100,255),(playerX,playerY,playerWidth,playerHeight))
         #Fruit
         pygame.draw.rect(SCREEN,(255,0,0),(fruitX,fruitY,playerWidth - 2,playerHeight - 2))
-        for num,tail in enumerate(tailList):
-            colorVal = 225 + len(tailList) - num
+        for num,tail in enumerate(tailList,start= 1):
+            colorVal = 225 + (len(tailList) * 20) - (num * 30)
+            if colorVal > 250:
+                colorVal = 250 - num * 5
+            
+            if colorVal < 15:
+                colorVal = 15
+                
+            assert  colorVal < 255, str(colorVal) + ' Greater than 255'
+            assert colorVal > 0, str(colorVal) + ' Less than 0'
             pygame.draw.rect(SCREEN,(0,0,colorVal),tail)
         
     
@@ -113,9 +122,9 @@ def draw():
         message = ['Q or X to quit' ,'R or J to continue','Final Score: {}'.format(score)]
         for num,line in enumerate(message):
             regFont = pygame.font.Font(None,30)
-            ascoreprint = regFont.render(line,True,(255,255,255))
-            ascore_rect = ascoreprint.get_rect(center = (SCREEN_LENGTH/2,SCREEN_HEIGHT/2 - 50 + num * 50))
-            SCREEN.blit(ascoreprint,ascore_rect)
+            scoreprint = regFont.render(line,True,(255,255,255))
+            score_rect = scoreprint.get_rect(center = (SCREEN_LENGTH/2,SCREEN_HEIGHT/2 - 50 + num * 50))
+            SCREEN.blit(scoreprint,score_rect)
     
 def distance(x1,y1,x2,y2):
     return math.sqrt((x1 - x2)**2 + (y1 - y2) **2)

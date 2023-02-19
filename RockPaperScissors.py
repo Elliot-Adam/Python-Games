@@ -4,35 +4,36 @@ import random
 import time
 
 #Ascii art
-def rock():
-    return'''
-           ,--.--._     
-    ------" _, \___)    
-            / _/____)   
-            \ /(____)   
-    ------\     (__)    
-            `-----"     
-    '''
+class Shapes:
+    def rock():
+        return'''
+               ,--.--._     
+        ------" _, \___)    
+                / _/____)   
+                \ /(____)   
+        ------\     (__)    
+                `-----"     
+        '''
 
-def scissors():
-    return'''
-                        
-     __       ,/'        
-    (__).  ,/'           
-     __  ::              
-    (__)'  `\.           
-              `\.        
-    '''    
-
-def paper():
-    return'''
-            _________          
-           /        /          
-          /        /           
-         /        /            
-        /________/             
+    def scissors():
+        return'''
                             
-    '''
+         __       ,/'        
+        (__).  ,/'           
+         __  ::              
+        (__)'  `\.           
+                  `\.        
+        '''    
+
+    def paper():
+        return'''
+                _________          
+               /        /          
+              /        /           
+             /        /            
+            /________/             
+                                
+        '''
 #Prints
 def countdown():
     for i in [3,2,1]:
@@ -138,31 +139,31 @@ def AI_choice(numa):
 def finishvars(search):
     match search:
         case 'rr':
-            image(rock,rock)
+            image(Shapes.rock,Shapes.rock)
             return 't'
         case 'rs':
-            image(rock,scissors)
+            image(Shapes.rock,Shapes.scissors)
             return 'w'
         case 'rp':
-            image(rock,paper)
+            image(Shapes.rock,Shapes.paper)
             return 'l'
         case 'ss':
-            image(scissors,scissors)
+            image(Shapes.scissors,Shapes.scissors)
             return 't'
         case 'sp':
-            image(scissors,paper)
+            image(Shapes.scissors,Shapes.paper)
             return 'w'
         case 'sr': 
-            image(scissors,rock)
+            image(Shapes.scissors,Shapes.rock)
             return 'l'
         case 'pp':
-            image(paper,paper)
+            image(Shapes.paper,Shapes.paper)
             return 't'
         case 'pr':
-            image(paper,rock)
+            image(Shapes.paper,Shapes.rock)
             return 'w'
         case 'ps':
-            image(paper,scissors)
+            image(Shapes.paper,Shapes.scissors)
             return 'l'
 
 def doneprompt():

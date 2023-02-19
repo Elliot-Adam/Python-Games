@@ -4,16 +4,27 @@ import string
 pygame.init()
 mixer.init()
 
+#Encapsulations of variables
+class InputVars:
+    buttonUp = False
+    held = False
+    buttonDown = False
+
 class Sounds:
     PIECE_DROP = mixer.Sound('Chess/SOUND_PIECE_DROPPING.m4a')
-    PIECE_TAKE = mixer.Sound('Chess/SOUND_PIECE_TAKEING.m4a')
+    PIECE_PICK_UP = mixer.Sound('Chess/SOUND_PIECE_TAKEING.m4a')
     PROMOTION = mixer.Sound('Chess/SOUND_PROMOTION.m4a')
     CASTLING = mixer.Sound('Chess/SOUND_CASTLING.m4a')
+
+    @staticmethod
+    def s_volume_change(soundFromSelf : pygame.mixer.Sound, volume : float):
+        soundFromSelf.set_volume(volume)
 
 class Convert:
     numToLetter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h'}
     letterNumDict = {'a':1,'b':2,'c':3,'d':4,'e':5,'f':6,'g':7,'h':8}
 
+#Game Related Classes
 class Piece:
     selectedCoord : str = None
     def __init__(self,color,name,coord):
@@ -26,11 +37,11 @@ class Piece:
         else:
             self.castleBool = False
 
-    def rules(self,chosenColor : str):
+    def rules(self,chosenPiece):
         """Returns list of all the coordinates where the piece can move to; has a match case for all the rules of the pieces"""
         match self.name:
             case 'PAWN':
-                possibleMoves = self.pawnRules(chosenColor)
+                possibleMoves = self.pawnRules(chosenPiece)
                                 
             case 'KNIGHT':
                 possibleMoves = self.knightRules()
@@ -52,26 +63,11 @@ class Piece:
     #Functions to determine which piece can move where;
     #Could probably be moved outside of the class,
     #but I think it looks neater
-    def pawnRules(self,chosenColor : str) -> list:
+    def pawnRules(self,chosenPiece) -> list:
         #Pawn Logic for taking
         possibleMoves = []
-        if chosenColor != None:
-            if chosenColor != self.color:
-                #Can only take if not the same color
-                letterNum = Convert.letterNumDict[self.selectedCoord[0]]
-                if self.color == 'WHITE':
-                    num = int(self.selectedCoord[1]) + 1
-                else:
-                    num = int(self.selectedCoord[1]) - 1
-                try:
-                    adjacent = [Convert.numToLetter[letterNum + 1],Convert.numToLetter[letterNum - 1]]
-                except KeyError:
-                    try:
-                        adjacent = [Convert.numToLetter[letterNum + 1]]
-                    except KeyError:
-                        adjacent = [Convert.numToLetter[letterNum - 1]]
-
-                possibleMoves = [value + str(num) for value in adjacent]
+        if chosenPiece is not None:
+            self.pawnTaking()
                             
         else:
             #Pawn logic for moving and en passant
@@ -87,14 +83,10 @@ class Piece:
                 else:
                     possibleNums = [int(self.selectedCoord[1]) - 1]
 
-            #En passant stuff - Not completed
-            #print(startingPos_dict,board.board_dict)
-            if startingPos_dict.values != board.board_dict.values:
-                print(lastPiece,lastCoord)
-                #If not in starting position because then there will be no previous coordinate or piece
-                if lastPiece.split('_')[1] == 'PAWN' and (lastCoord[1] == '7' or lastCoord[1] == '2'):
-                    #If last piece was a pawn and pawn was on 7 or 2
-                    print(lastPiece, lastCoord)
+            #En passant stuff
+            enPassant = self.enPassant()
+            if enPassant:
+                possibleMoves.extend(enPassant)
                     
             #Moving logic for pawns; accounts for opening double move
             letter = self.selectedCoord[0]
@@ -244,13 +236,49 @@ class Piece:
 
             return possibleMoves
 
-    def enPassant(self):
-        pass
+    def enPassant(self) -> list:
+        #Should probably return a string as you can only ever have one en passant at a time but
+        #I like keeping the convention of having the functions return a list
+        possibleMoves = []
+        if not checkStartingPos():
+            #ensures that this isn't the first move
+            #GUARD CLAUSES
+            if lastPiece.name != 'PAWN':
+                return
 
-    def promotion(self):
+            if not (abs(Convert.letterNumDict[lastCoord[0]] - Convert.letterNumDict[lastPiece.coord[0]]) == 2):
+                #If piece didn't move 2 spaces
+                return
+
+            if not selected:
+                return
+
+            if lastPiece.color != selection.color:
+                return
+
+            if not (abs(Convert.numToLetter[selection.selectedCoord[1]] - Convert.numToLetter[lastPiece.coord[1]]) == 1):
+                #If piece isn't next to my current held piece
+                return
+            
+            #Guard clause summary
+            #If there was an enemy pawn that just moved 2 spaces and is now next to my pawn
+            #...  that I have selected , then do all the code in here
+            letter = lastPiece.coord[0]
+            if lastPiece.color == 'WHITE':
+                num = str(lastPiece.coord[1]) - 1
+
+            else:
+                num = str(lastPiece.coord[1]) + 1
+
+            coord = letter + str(num)
+            possibleMoves.append(coord)
+        return possibleMoves
+                 
+    def promotion(self) -> None:
+        """Blits to the screen the promotion window"""
         rect : pygame.Rect = board.rect_dict[self.coord] 
         pygame.draw.rect(SCREEN,(255,255,255),rect)
-        offset = 5
+        offset = 10
         for num,img in enumerate(['QUEEN','ROOK','KNIGHT','BISHOP'],start= 1):
             newimgstr = f'Chess/PIECE_{self.color}_{img}.png'
             newimg = pygame.image.load(newimgstr)
@@ -448,6 +476,27 @@ class Piece:
                         moves.extend(lineMoves)
                         return moves                            
 
+    def pawnTaking(self) -> list:
+        """All possible taking moves for pawns"""
+        #Can only take if not the same color
+        letterNum = Convert.letterNumDict[self.selectedCoord[0]]
+        if self.color == 'WHITE':
+            num = int(self.selectedCoord[1]) + 1
+        else:
+            num = int(self.selectedCoord[1]) - 1
+        try:
+            adjacent = [Convert.numToLetter[letterNum + 1],Convert.numToLetter[letterNum - 1]]
+        except KeyError:
+            try:
+                adjacent = [Convert.numToLetter[letterNum + 1]]
+            except KeyError:
+                adjacent = [Convert.numToLetter[letterNum - 1]]
+
+        possibleMoves = [value + str(num) for value in adjacent]
+
+        return possibleMoves
+
+    @staticmethod
     def s_castleCorres(coord):
         """Grabs which rook to change and which rook to make from the new king coordinate"""
         if coord[0] == 'g':
@@ -470,6 +519,19 @@ class Piece:
 
         mixer.Sound.play(Sounds.CASTLING)
 
+    @staticmethod
+    def s_enPassantCorres(coord):
+        """Deletes the above or behind pawn"""
+        letter = coord[0]
+        if selection.color == 'WHITE':
+            num = int(coord[1]) - 1
+        else:
+            num = int(coord[1]) + 1
+        
+        deletedCoord = letter + str(num)
+        board.board_dict[deletedCoord] = None
+
+##Singleton
 class Board:
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
@@ -503,10 +565,6 @@ class Board:
         """The coordinate should be like h4 or e5 while the piece will be the name of the image file so like
         WHITE_PAWN or BLACK_QUEEN"""
         global promotion,promotingPiece
-        if self.board_dict[coord] != None:
-            mixer.Sound.play(Sounds.PIECE_TAKE)
-        else:
-            mixer.Sound.play(Sounds.PIECE_DROP)
         self.board_dict[coord] = piece
         if isinstance(piece,Piece):
             piece.coord = coord
@@ -556,12 +614,10 @@ class Board:
             self.change(coord,piece)
 
 def setup() -> None:
-    global board,selected,playerVal,startingPos_dict,inCheckbool,inCheckcolor,checkingPiece
-    global promotion,promotingPiece, checkedKing, held
+    global board,selected,playerVal,inCheckbool,inCheckcolor,checkingPiece
+    global promotion,promotingPiece, checkedKing
     playerVal = 'WHITE'
     board = Board()
-    startingPos = Board()
-    startingPos_dict = startingPos.board_dict
     selected = False
     inCheckbool = False
     inCheckcolor = None
@@ -569,7 +625,8 @@ def setup() -> None:
     checkedKing = None
     promotion = False
     promotingPiece = None
-    held = False
+    Sounds.s_volume_change(Sounds.PIECE_DROP,0.5)
+    Sounds.s_volume_change(Sounds.PIECE_PICK_UP,0.2)
     
 def draw_board() -> None:
     boardImage = pygame.image.load('Chess/BOARD_WHITE.png').convert_alpha()
@@ -642,14 +699,16 @@ def sideChange(color : str) -> None:
         playerVal = 'WHITE'
     lastCoord = selection.selectedCoord
     lastPiece = selection
+    selection.selectedCoord = None
     selected = False
 
 def playerInputLogic(color : str) -> None:
-    global playerVal,selected,selection,lastCoord,lastPiece, held, promotion, promotingPiece
+    global playerVal,selected,selection,lastCoord,lastPiece, promotion, promotingPiece
     #selection gets defined in here
     #selection = Piece object of the piece that the player is currently holding
-    if pygame.mouse.get_pressed()[0] and not held:
-        held = True
+    if pygame.mouse.get_pressed()[0] and not InputVars.held:
+        #Picks up a piece when you either press down or lift up the mouse button 
+        InputVars.held = True
         xrange = range(board.textBuffer,board.BOARD_LENGTH + board.textBuffer + 1)
         yrange = range(board.blankBuffer,board.blankBuffer + board.BOARD_HEIGHT + 1)
         if pygame.mouse.get_pos()[0] in xrange and pygame.mouse.get_pos()[1] in yrange:
@@ -665,13 +724,7 @@ def playerInputLogic(color : str) -> None:
                     promotion = False
                     promotingPiece = None
 
-            if board.board_dict[coord] != None:
-                #If the chosen spot isn't empty, grab the color of the piece you clicked
-                chosenColor = board.board_dict[coord].color
-
-            else:
-                chosenColor = None
-
+            chosenPiece = board.board_dict[coord]
 
             if selected:
                 #Putting down a piece if holding a piece
@@ -681,33 +734,46 @@ def playerInputLogic(color : str) -> None:
                     selected = False
                     return   
                 #Selection is the piece object that the player is currently holding
-                possibleMoves = legalMoves(color,chosenColor)
+                possibleMoves = legalMoves(color,board.board_dict[coord])
+                if selection.name == 'PAWN':
+                    possibleMoves.extend(legalMoves(color,None))
                 for possible in possibleMoves:
-                    #Castling stuff
-                    if selection.name == 'KING' and (possible in selection.castling()):
-                        Piece.s_castleCorres(possible)
-
-                    if chosenColor != color:
+                    if chosenPiece == None or chosenPiece.color != color:
                         if coord == possible:
+                            #Castling stuff
+                            if selection.name == 'KING' and (coord in selection.castling()):
+                                #If player chose to castle, move the king and rook accordingly
+                                Piece.s_castleCorres(possible)
+
+                            #En passant stuff
+                            if selection.name == 'PAWN' and selection.enPassant() and (coord in selection.enPassant()):
+                                #If player chose to en passant, remember to delete the piece
+                                Piece.s_castleCorres(possible)
+
+                            #Makes it so that a moved rook/king can't castle
                             if selection.name == 'ROOK' or selection.name == 'KING':
                                 selection.castleBool = False
+                            mixer.Sound.play(Sounds.PIECE_DROP)
                             board.change(coord,selection)
                             sideChange(color)    
                             break
                 else:
                     #Code for what happens if the chosen spot isn't legal
                     #Puts back the piece
-                    selected = False
+                    mixer.Sound.play(Sounds.PIECE_PICK_UP)
                     board.change(selection.selectedCoord,selection)
+                    selected = False
                     selection = None
             else:
                 if board.board_dict[coord] != None:
                     #Grabbing a piece, when you don't have one; only runs if there is a piece in that square
-                    if chosenColor == color:
+                    if chosenPiece.color == color:
                         selected = True
-                        selection = board.board_dict[coord]
-                        board.board_dict[coord].selectedCoord = coord 
+                        selection = chosenPiece
+                        chosenPiece.selectedCoord = coord 
                         board.change(coord,None)
+        if InputVars.buttonUp:
+            InputVars.buttonUp = False
 
     if selected:
         moves = legalMoves(color,None)
@@ -715,7 +781,7 @@ def playerInputLogic(color : str) -> None:
             moves.extend(legalMoves(selection.color,selection.opposite()))
         highlightMoves(moves)
 
-def legalMoves(color : str,chosenColor : str) -> list:
+def legalMoves(color : str,chosenPiece : Piece) -> list:
     global inCheckbool,inCheckcolor,checkingPiece
     if not inCheckbool:
         checkInfo = checked()
@@ -726,7 +792,7 @@ def legalMoves(color : str,chosenColor : str) -> list:
 
 
     if not (inCheckbool and inCheckcolor == color):
-        possibleMoves = selection.rules(chosenColor)
+        possibleMoves = selection.rules(chosenPiece)
 
     else:
         #Code for what happens if you are in check
@@ -736,8 +802,8 @@ def legalMoves(color : str,chosenColor : str) -> list:
                 continue
 
             piece.selectedCoord = coord
-            movesOfPieceTake : list = piece.rules(color)
-            movesOfPieceMove : list = piece.rules(None)
+            movesOfPieceTake : list = piece.rules(Piece(color,None,None))
+            movesOfPieceMove : list = piece.rules(Piece(None,None,None))
             #Now we have a list of all the possible moves this piece could make
             for move in movesOfPieceTake:
                 if move == checkingPiece.coord:
@@ -803,6 +869,17 @@ def coveredMoves(color) -> list:
 
     return possibleMoves
 
+def checkStartingPos() -> bool:
+    startingPos = True
+    for letter in string.ascii_lowercase[:8]:
+        for num in string.digits[4:7]:
+            coord = letter + num
+            if board.board_dict[coord] is not None:
+                startingPos = False
+
+    return startingPos
+
+
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()
     FPS = 14
@@ -818,6 +895,8 @@ if __name__ == '__main__':
     pygame.display.set_caption(name)
     pygame.display.set_icon(icon)
     isRunning = True
+    
+    assert pygame.get_init(), 'ERROR INITIATING MODULES'
     setup()
     while isRunning:
         draw_board()
@@ -825,12 +904,18 @@ if __name__ == '__main__':
         draw_pieces()
         if promotion:
             promotingPiece.promotion()
-        for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONUP:
-                held = False
 
+        if pygame.mouse.get_pressed()[0]:
+            InputVars.buttonDown = True
+        
+        if not pygame.mouse.get_pressed()[0]:
+            InputVars.buttonUp = True
+            InputVars.held = False
+
+        for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 isRunning = False
+
         pygame.display.update()
         CLOCK.tick(FPS)
     pygame.quit()

@@ -9,3 +9,5 @@ There are only small projects that do quick math and stuff like that
 
 in order to change what is being ran in Playground, just comment and uncomment whatever in the 
 ... if name main
+
+if I am only using one image or sound file for a project, I will just name it the name of the project instead of putting it in a new folder

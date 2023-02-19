@@ -21,7 +21,7 @@ class Piece:
         self.name : str = name
         self.coord : str = coord
         self.image : str = f'PIECE_{self.color}_{self.name}'
-        if self.name == 'ROOK':
+        if self.name == 'ROOK' or self.name == 'KING':
             self.castleBool = True
         else:
             self.castleBool = False
@@ -209,34 +209,40 @@ class Piece:
                 possibleMoves.append(str(Convert.numToLetter[letter]) + str(num))
 
         possibleMoves.remove(self.selectedCoord)
+        if len(self.castling()) > 0:
+            possibleMoves.extend(self.castling())
+
         return possibleMoves
 
 
     #All special rules into functions
-    def castling(self):
+    def castling(self) -> list:
         if self.name == 'KING':
             #You can only run castling if you are a king piece
             possibleMoves = []
-            if self.color == 'WHITE':
-                for piece in [board.board_dict['a1'],board.board_dict['h1']]:
+            for num in ['1','8']:
+                #First runs through the white rooks on a1 and h1 and then the black rooks on a8 and h8
+                for piece in [board.board_dict['a' + num],board.board_dict['h' + num]]:
                     #Checks castling bools and ensures that there is a piece in the spot
                     if piece == None or piece.name != 'ROOK':
+                        #print('PIECE NOT RECOGNIZED')
                         continue
-                    elif piece.castlingBool:
+
+                    elif piece.castleBool:
                         #All the white rooks that haven't moved yet
                         if piece.coord[0] > self.coord[0]:
                             #Rook on h1
-                            if board.board_dict['f1'] == None and board.board_dict['g1'] == None:
-                                possibleMoves.append('g1')
-                                board.board_dict['f1'] = piece
-                                mixer.Sound.play(Sounds.CASTLING)
-                            
+                            if board.board_dict['f' + num] == None and board.board_dict['g' + num] == None:
+                                #Ensuring f and g squares are open for short castling
+                                possibleMoves.append('g' + num)
+                    
                         else:
                             #Rook on a1
-                            if board.board_dict['b1'] == None and board.board_dict['c1'] == None and board.board_dict['d1'] == None:
-                                possibleMoves.append('c1')
-                                board.board_dict['d1'] = piece
-                                mixer.Sound.play(Sounds.CASTLING)
+                            if board.board_dict['b' + num] == None and board.board_dict['c' + num] == None and board.board_dict['d' + num] == None:
+                                #Ensuring d and c and b squares are open for long castling
+                                possibleMoves.append('c' + num)
+
+            return possibleMoves
 
     def enPassant(self):
         pass
@@ -441,6 +447,28 @@ class Piece:
                         moves = diagMoves[:]
                         moves.extend(lineMoves)
                         return moves                            
+
+    def s_castleCorres(coord):
+        """Grabs which rook to change and which rook to make from the new king coordinate"""
+        if coord[0] == 'g':
+            #Short castle
+            newRook = Piece(selection.color,'ROOK','f' + coord[1])
+            newRook.castleBool = False
+            board.board_dict['f' + coord[1]] = newRook
+            #Make a new rook that cant castle in the correct place
+            board.board_dict['h' + coord[1]] = None
+            #Delete the old rook
+
+        if coord[0] == 'c':
+            #Long castle
+            newRook = Piece(selection.color,'ROOK','d' + coord[1])
+            newRook.castleBool = False
+            board.board_dict['d' + coord[1]] = newRook
+            #Make a new rook that cant castle in the correct place
+            board.board_dict['a' + coord[1]] = None
+            #Delete the old rook
+
+        mixer.Sound.play(Sounds.CASTLING)
 
 class Board:
     SCREEN_LENGTH = 500
@@ -655,11 +683,17 @@ def playerInputLogic(color : str) -> None:
                 #Selection is the piece object that the player is currently holding
                 possibleMoves = legalMoves(color,chosenColor)
                 for possible in possibleMoves:
-                        if chosenColor != color:
-                            if coord == possible:
-                                board.change(coord,selection)
-                                sideChange(color)    
-                                break
+                    #Castling stuff
+                    if selection.name == 'KING' and (possible in selection.castling()):
+                        Piece.s_castleCorres(possible)
+
+                    if chosenColor != color:
+                        if coord == possible:
+                            if selection.name == 'ROOK' or selection.name == 'KING':
+                                selection.castleBool = False
+                            board.change(coord,selection)
+                            sideChange(color)    
+                            break
                 else:
                     #Code for what happens if the chosen spot isn't legal
                     #Puts back the piece
@@ -693,7 +727,6 @@ def legalMoves(color : str,chosenColor : str) -> list:
 
     if not (inCheckbool and inCheckcolor == color):
         possibleMoves = selection.rules(chosenColor)
-        
 
     else:
         #Code for what happens if you are in check
@@ -715,7 +748,7 @@ def legalMoves(color : str,chosenColor : str) -> list:
                 #See if you can get in the way of the check
                 moves = checkedKing.blockCheck()
                 if move in moves:
-                    print('APPENDING',piece.name + piece.coord, move)
+                    #print('APPENDING',piece.name + piece.coord, move)
                     possibleMoves.append(move)
                     
     return possibleMoves        

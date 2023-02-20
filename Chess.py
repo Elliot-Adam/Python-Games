@@ -1,14 +1,14 @@
 import pygame
 from pygame import mixer
 import string
+
 pygame.init()
 mixer.init()
 
 #Encapsulations of variables
 class InputVars:
-    buttonUp = False
+    #Probably going to implement a drag feature later
     held = False
-    buttonDown = False
 
 class Sounds:
     PIECE_DROP = mixer.Sound('Chess/SOUND_PIECE_DROPPING.m4a')
@@ -67,21 +67,16 @@ class Piece:
         #Pawn Logic for taking
         possibleMoves = []
         if chosenPiece is not None:
-            self.pawnTaking()
+            pawnTake = self.pawnTaking()
+            if pawnTake:
+                possibleMoves.extend(pawnTake)
                             
         else:
             #Pawn logic for moving and en passant
             #If on starting square pawn can move two squares
-            if self.color == 'WHITE':
-                if self.selectedCoord[1] == '2' and board.board_dict[self.selectedCoord[0] + str(int(self.selectedCoord[1]) + 1)] == None:
-                    possibleNums = [int(self.selectedCoord[1]) + 1, int(self.selectedCoord[1]) + 2]
-                else:
-                    possibleNums = [int(self.selectedCoord[1]) + 1]
-            else:
-                if self.selectedCoord[1] == '7' and board.board_dict[str(self.selectedCoord[0] + str(int(self.selectedCoord[1]) - 1))] == None:
-                    possibleNums = [int(self.selectedCoord[1]) - 1, int(self.selectedCoord[1]) - 2]
-                else:
-                    possibleNums = [int(self.selectedCoord[1]) - 1]
+            pawnMove = self.pawnMoving()
+            if pawnMove:
+                possibleNums = pawnMove.copy()
 
             #En passant stuff
             enPassant = self.enPassant()
@@ -246,29 +241,29 @@ class Piece:
             if lastPiece.name != 'PAWN':
                 return
 
-            if not (abs(Convert.letterNumDict[lastCoord[0]] - Convert.letterNumDict[lastPiece.coord[0]]) == 2):
+            if not (abs(int(lastCoord[1]) - int(lastPiece.coord[1])) == 2):
                 #If piece didn't move 2 spaces
                 return
 
             if not selected:
                 return
 
-            if lastPiece.color != selection.color:
-                return
-
-            if not (abs(Convert.numToLetter[selection.selectedCoord[1]] - Convert.numToLetter[lastPiece.coord[1]]) == 1):
+            if not (abs(Convert.letterNumDict[selection.selectedCoord[0]] - Convert.letterNumDict[lastPiece.coord[0]]) == 1):
                 #If piece isn't next to my current held piece
                 return
             
+            if not (selection.selectedCoord[1] == lastPiece.coord[1]):
+                return
+
             #Guard clause summary
-            #If there was an enemy pawn that just moved 2 spaces and is now next to my pawn
+            #If there was an enemy pawn that just moved 2 spaces and is now right next to my pawn
             #...  that I have selected , then do all the code in here
             letter = lastPiece.coord[0]
             if lastPiece.color == 'WHITE':
-                num = str(lastPiece.coord[1]) - 1
+                num = int(lastPiece.coord[1]) - 1
 
             else:
-                num = str(lastPiece.coord[1]) + 1
+                num = int(lastPiece.coord[1]) + 1
 
             coord = letter + str(num)
             possibleMoves.append(coord)
@@ -493,8 +488,27 @@ class Piece:
                 adjacent = [Convert.numToLetter[letterNum - 1]]
 
         possibleMoves = [value + str(num) for value in adjacent]
+        for possible in possibleMoves:
+            if board.board_dict[possible] is None:
+                #Removes the taking moves where there is nothing; cant take nothing
+                possibleMoves.remove(possible)
+        print('RETURNING FROM TAKE',possibleMoves)
 
         return possibleMoves
+
+    def pawnMoving(self) -> list:
+        if self.color == 'WHITE':
+            if self.selectedCoord[1] == '2' and board.board_dict[self.selectedCoord[0] + str(int(self.selectedCoord[1]) + 1)] == None:
+                possibleNums = [int(self.selectedCoord[1]) + 1, int(self.selectedCoord[1]) + 2]
+            else:
+                possibleNums = [int(self.selectedCoord[1]) + 1]
+        else:
+            if self.selectedCoord[1] == '7' and board.board_dict[str(self.selectedCoord[0] + str(int(self.selectedCoord[1]) - 1))] == None:
+                possibleNums = [int(self.selectedCoord[1]) - 1, int(self.selectedCoord[1]) - 2]
+            else:
+                possibleNums = [int(self.selectedCoord[1]) - 1]
+
+        return possibleNums
 
     @staticmethod
     def s_castleCorres(coord):
@@ -772,8 +786,6 @@ def playerInputLogic(color : str) -> None:
                         selection = chosenPiece
                         chosenPiece.selectedCoord = coord 
                         board.change(coord,None)
-        if InputVars.buttonUp:
-            InputVars.buttonUp = False
 
     if selected:
         moves = legalMoves(color,None)
@@ -879,7 +891,6 @@ def checkStartingPos() -> bool:
 
     return startingPos
 
-
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()
     FPS = 14
@@ -902,14 +913,12 @@ if __name__ == '__main__':
         draw_board()
         playerInputLogic(playerVal)
         draw_pieces()
+        if selected:
+            print(legalMoves(selection.opposite(),selection))
         if promotion:
             promotingPiece.promotion()
-
-        if pygame.mouse.get_pressed()[0]:
-            InputVars.buttonDown = True
         
         if not pygame.mouse.get_pressed()[0]:
-            InputVars.buttonUp = True
             InputVars.held = False
 
         for event in pygame.event.get():

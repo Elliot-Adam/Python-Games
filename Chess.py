@@ -475,6 +475,7 @@ class Piece:
                         moves.extend(lineMoves)
                         return moves                            
 
+    #Pawn logic functions
     def pawnTaking(self) -> list:
         """All possible taking moves for pawns"""
         #Can only take if not the same color
@@ -496,8 +497,8 @@ class Piece:
             if board.board_dict[possible] is None:
                 #Removes the taking moves where there is nothing; cant take nothing
                 possibleMoves.remove(possible)
+                
         print('RETURNING FROM TAKE',possibleMoves)
-
         return possibleMoves
 
     def pawnMoving(self) -> list:
@@ -514,6 +515,7 @@ class Piece:
 
         return possibleNums
 
+    #Static functions
     @staticmethod
     def s_castleCorres(coord):
         """Grabs which rook to change and which rook to make from the new king coordinate"""
@@ -845,6 +847,8 @@ def highlightMoves(inputList : list) -> None:
     for move in inputList:
         #Move = coordinate like h3
         if board.board_dict[move] is None:
+            if selection.name == 'PAWN':
+                assert move[1] == selection.selectedCoord[1], 'PRINTING ILLEGAL TAKES'
             rect : pygame.Rect = board.rect_dict[move]
             smalldot = pygame.transform.scale(smalldotimg,(rect.width - 10,rect.height - 10))
             SCREEN.blit(smalldot,rect)

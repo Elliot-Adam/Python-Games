@@ -1,6 +1,7 @@
 import pygame
 from pygame import mixer
 import string
+import copy
 
 pygame.init()
 mixer.init()
@@ -132,7 +133,7 @@ class Piece:
                         break
 
                     newCoord = Convert.numToLetter[letterNum] + str(num)
-                    if board.board_dict[newCoord] != None:
+                    if board.board_dict[newCoord] is not None:
                         #If theres a piece in the intended spot
                         diagBool = False
                         
@@ -161,7 +162,7 @@ class Piece:
                         break
 
                     newCoord = Convert.numToLetter[letterNum] + str(num)
-                    if board.board_dict[newCoord] != None:
+                    if board.board_dict[newCoord] is not None:
                         #If theres a piece in the intended spot
                         lineBool = False
                         
@@ -271,13 +272,16 @@ class Piece:
                  
     def promotion(self) -> None:
         """Blits to the screen the promotion window"""
-        rect : pygame.Rect = board.rect_dict[self.coord] 
+        rect : pygame.Rect = copy.deepcopy(board.rect_dict[self.coord])
+        rectoffset = -3
+        rect.x = copy.deepcopy(board.rect_dict[self.coord].x) + rectoffset
+        rect.y = copy.deepcopy(board.rect_dict[self.coord].y) + rectoffset
         pygame.draw.rect(SCREEN,(255,255,255),rect)
-        offset = 10
+        imgsizeoffset = 5
         for num,img in enumerate(['QUEEN','ROOK','KNIGHT','BISHOP'],start= 1):
             newimgstr = f'Chess/PIECE_{self.color}_{img}.png'
             newimg = pygame.image.load(newimgstr)
-            scaled_img = pygame.transform.scale(newimg,(rect.width / 2 - offset ,rect.height / 2 - offset))
+            scaled_img = pygame.transform.scale(newimg,(rect.width / 2 - imgsizeoffset ,rect.height / 2 - imgsizeoffset))
             width , height = (rect.width / 2),(rect.height / 2)
             topLrect = pygame.Rect(rect.x,rect.y,width,height)
             topRrect = pygame.Rect(rect.x + width,rect.y,width,height)
@@ -331,7 +335,7 @@ class Piece:
                                         break
 
                                     newCoord = Convert.numToLetter[letterNum] + str(num)
-                                    if board.board_dict[newCoord] != None:
+                                    if board.board_dict[newCoord] is not None:
                                         #If theres a piece in the intended spot
                                         newPiece = board.board_dict[newCoord]
                                         if newPiece.name == 'KING' and newPiece.color != checkingPiece.color:
@@ -519,6 +523,7 @@ class Piece:
             newRook.castleBool = False
             board.board_dict['f' + coord[1]] = newRook
             #Make a new rook that cant castle in the correct place
+            del board.board_dict['h' + coord[1]]
             board.board_dict['h' + coord[1]] = None
             #Delete the old rook
 
@@ -528,6 +533,7 @@ class Piece:
             newRook.castleBool = False
             board.board_dict['d' + coord[1]] = newRook
             #Make a new rook that cant castle in the correct place
+            del board.board_dict['a' + coord[1]]
             board.board_dict['a' + coord[1]] = None
             #Delete the old rook
 
@@ -543,6 +549,7 @@ class Piece:
             num = int(coord[1]) + 1
         
         deletedCoord = letter + str(num)
+        del board.board_dict[deletedCoord]
         board.board_dict[deletedCoord] = None
 
 ##Singleton
@@ -734,6 +741,7 @@ def playerInputLogic(color : str) -> None:
             if promotion:
                 if coord == promotingPiece.coord:
                     selectedPiece = quarterCoordClicked(x,y,coord)
+                    del board.board_dict[coord]
                     board.board_dict[coord] = Piece(board.board_dict[coord].color,selectedPiece,coord)
                     promotion = False
                     promotingPiece = None
@@ -779,7 +787,7 @@ def playerInputLogic(color : str) -> None:
                     selected = False
                     selection = None
             else:
-                if board.board_dict[coord] != None:
+                if board.board_dict[coord] is not None:
                     #Grabbing a piece, when you don't have one; only runs if there is a piece in that square
                     if chosenPiece.color == color:
                         selected = True
@@ -836,7 +844,7 @@ def highlightMoves(inputList : list) -> None:
     bigdotimg = pygame.image.load('Chess/DOT_BIG.png')
     for move in inputList:
         #Move = coordinate like h3
-        if board.board_dict[move] == None:
+        if board.board_dict[move] is None:
             rect : pygame.Rect = board.rect_dict[move]
             smalldot = pygame.transform.scale(smalldotimg,(rect.width - 10,rect.height - 10))
             SCREEN.blit(smalldot,rect)
@@ -859,7 +867,7 @@ def checked() -> tuple:
                 possibleMoves.extend(piece.pawnRules(None))
             #Now we have a list of all the possible moves this piece could make
             for move in possibleMoves:
-                if board.board_dict[move] == None:
+                if board.board_dict[move] is None:
                     continue
 
                 if board.board_dict[move].color == piece.color:

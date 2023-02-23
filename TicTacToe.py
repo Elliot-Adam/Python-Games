@@ -1,6 +1,7 @@
 #Tic Tac Toe
 #Imports 
 import random
+import copy
 
 #Classes
 class Board:
@@ -217,9 +218,47 @@ class EasyAI(Player):
         self.choice -= 1
 
 class HardAI(Player):
+    temp_board = None
     def choiceGetter(self):
         self.choice = self.optimalMove()
         self.choice -= 1
+
+    def minimax(self,depth : int,isMaximizing : bool):
+        if depth == 0 or self.winningMove() or self.blockWin():
+            scores_result = {'tie':0,'win':1,'loss':-1}
+            if self.tieCheck():
+                return scores_result['tie']
+
+            elif self.winningMove():
+                return scores_result['win']
+
+            elif self.blockWin():
+                return scores_result['loss']
+
+
+        if isMaximizing:
+            best_score = -1000
+            moves = [move for move in self.temp_board if isinstance(move,int)]
+            print(moves)
+            for move in moves:
+                print(move)
+                og = copy.copy(self.temp_board[move])
+                self.temp_board[move] = self.letter
+                score = self.minimax(depth - 1,False)
+                best_score = max(score,best_score)
+                self.temp_board[move] = og
+            return best_score
+
+        else:
+            worst_score = 1000
+            moves = [move for move in self.temp_board if isinstance(move,int)]
+            for move in moves:
+                og = copy.copy(self.temp_board[move])
+                self.temp_board[move] = self.letter
+                score = self.minimax(depth - 1,True)
+                worst_score = min(score,worst_score)
+                self.temp_board[move] = og
+            return worst_score
 
     def winningMove(self):
         #check rows
@@ -287,13 +326,30 @@ class HardAI(Player):
         return cornerList
 
     def optimalMove(self):
-        if len(self.winningMove()) > 0:
-            return random.choice(self.winningMove())
-        if len(self.blockWin()) > 0:
-            return random.choice(self.blockWin())
-        if len(self.corners()) > 0:
-            return random.choice(self.corners())
-        return random.choice(board.repCheck()) 
+        self.temp_board = board.spotlist.copy()
+        best_score = -1000
+        moves = [move for move in self.temp_board if isinstance(move,int)]
+        for move in moves:
+            og = copy.copy(self.temp_board[move])
+            self.temp_board[move] = self.letter
+            score = self.minimax(20,False)
+            best_score = max(score,best_score)
+            if best_score != -1000:
+                best_move = move
+            self.temp_board[move] = og
+        return best_move
+
+    def tieCheck(self):
+        if not self.temp_board:
+            return
+
+        tempspotlist = list(set(self.temp_board))
+        if '0' in tempspotlist:
+            tempspotlist.remove('0')
+        if 'X' in tempspotlist:
+            print(tempspotlist)
+            tempspotlist.remove('X')
+        return tempspotlist
 
 
 #Functions

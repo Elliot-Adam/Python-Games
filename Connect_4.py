@@ -332,7 +332,7 @@ class HardAI(Player):
                 og = self.temp_board.move_list[move][:]
                 self.temp_board.move_list[move] = self.color
                 score = self.minimax(depth - 1,True)
-                best_score = min(score,worst_score)
+                worst_score = min(score,worst_score)
                 self.temp_board.move_list[move] = og
             return worst_score
 

@@ -1,5 +1,6 @@
 import pygame
 import copy
+import random
 
 pygame.init()
 
@@ -30,13 +31,15 @@ class Bird:
         self.img = pygame.transform.flip(self.img,False,True)
         self.vel = 0
         self.accel = copy.copy(gravity)
+
+    def pillarDeath(self):
+        self.vel = 0
+        self.accel = 0
     
-
-
 class Pillar:
     move_speed = 3
-    width = 10
-    height = 50
+    width = 100
+    height = 200
     def __init__(self,x,y,upsideDown : bool) -> None:
         self.x = x
         self.y = y
@@ -45,6 +48,7 @@ class Pillar:
 
     def move(self):
         self.x -= self.move_speed
+        self.rect.x -= self.move_speed
 
     def collisDetect(self,bird : Bird) -> bool:
         if self.rect.colliderect(bird.rect):
@@ -70,15 +74,25 @@ def draw():
     bird_img = Bird.img
     pipe_img = pygame.image.load('flappy_bird/pipe.png')
     scaled_bird = pygame.transform.scale(bird_img,(Bird.width,Bird.height))
-    scaled_pipe = pygame.transform.scale(pipe_img,(Pillar.width,Pillar.height))
     SCREEN.blit(scaled_bird,(bird.x,bird.y))
     for pillar in pillarList:
+        scaled_pipe = pygame.transform.scale(pipe_img,(pillar.width,pillar.height))
         if pillar.upsideDown:
             new_pipe_img = pygame.transform.flip(scaled_pipe, False, True)
         else:
             new_pipe_img = scaled_pipe
         SCREEN.blit(new_pipe_img,(pillar.x,pillar.y))
-        
+        #Debugging mode
+        #pygame.draw.rect(SCREEN,(255,255,255),pillar.rect)
+        #Hitbox debugging
+        pillaroffset = 5
+        pillarHitx = pillar.rect.x + pillaroffset
+        pillarHity = pillar.rect.y + pillaroffset
+        newRect = pygame.Rect(pillarHitx,pillarHity,Pillar.width - pillaroffset ,Pillar.height - pillaroffset )
+        pygame.draw.rect(SCREEN,(255,255,255),newRect)
+
+    #Hitbox debugging 
+    pygame.draw.rect(SCREEN,(255,0,0),bird.rect)
     if gameOver:
         message = ['Q or X to quit' ,'R or J to continue','Final Score: {}'.format(score)]
         for num,line in enumerate(message):
@@ -92,14 +106,22 @@ def drawBg():
     scaled_bg = pygame.transform.scale(bg,(SCREEN_WIDTH,SCREEN_HEIGHT))
     SCREEN.blit(scaled_bg,(0,0))
 
-def logic():
-    global gameOver
+def logic(timer):
+    global gameOver,pillarList
+    if timer % 100  == 0:
+        topHeight = 50
+        ycoord = random.randint(topHeight,SCREEN_HEIGHT - topHeight)
+        topCol = Pillar(SCREEN_WIDTH,0,True)
+        botCol = Pillar(SCREEN_WIDTH,SCREEN_HEIGHT - Pillar.height ,False)
+        pillarList.append(topCol)
+        pillarList.append(botCol)
+
     #Logic for flapping
     bird.vel += bird.accel
     bird.y += bird.vel
+    bird.rect.y += bird.vel
     if bird.flapping:
         bird.flappingTimer += 1
-    
         if bird.flappingTimer == bird.flappingMax:
             bird.accel = copy.copy(gravity)
             bird.flapping = False
@@ -114,6 +136,25 @@ def logic():
         gameOver = True
         bird.nonPillarDeath()   
         bird.accel = 0
+
+    #Moving pillars
+    if not gameOver:
+        for pillar in pillarList:
+            pillar.move()
+
+    #Logic for dying on pillars
+    pillaroffset = -75
+    birdoffset = 0
+    birdHitx = range(bird.rect.x + birdoffset,bird.rect.x + bird.width - birdoffset)
+    birdHity = range(bird.rect.y + birdoffset,bird.rect.y + bird.height - birdoffset)
+    for pillar in pillarList:
+        pillarHitx = range(pillar.rect.x + pillaroffset,pillar.rect.x + pillar.width - pillaroffset)
+        pillarHity = range(pillar.rect.y + pillaroffset,pillar.rect.y + pillar.height - pillaroffset)
+        for hitx,hity in zip(pillarHitx,pillarHity):
+            if (hitx in birdHitx) and (hity in birdHity):
+                gameOver = True
+                bird.pillarDeath()
+
 
 def input():
     global pressed
@@ -137,14 +178,14 @@ if __name__ == '__main__':
     pygame.display.set_icon(icon)
     
     isRunning = True
+    timer = 0
 
     start()
     while isRunning:
         draw()
-        logic()
+        logic(timer)
         if not gameOver:
             input()
-        print(pygame.mouse.get_pressed()[0])
         for event in pygame.event.get():
             if event.type == pygame.KEYUP or event.type == pygame.MOUSEBUTTONUP:
                 pressed = False
@@ -152,6 +193,7 @@ if __name__ == '__main__':
             if event.type == pygame.QUIT:
                 isRunning = False
             
+        timer += 1
         CLOCK.tick(FPS)
         pygame.display.update()
 

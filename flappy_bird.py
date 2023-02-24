@@ -39,19 +39,34 @@ class Bird:
 class Pillar:
     move_speed = 3
     width = 100
-    height = 200
+    #height = 200
     def __init__(self,x,y,upsideDown : bool) -> None:
         self.x = x
         self.y = y
         self.upsideDown = upsideDown
+        self.height = self.y
         self.rect : pygame.Rect = pygame.Rect(self.x,self.y,self.width,self.height)
+        if self.upsideDown:
+            self.scoreValid = True
+        else:
+            self.scoreValid = False
 
     def move(self):
         self.x -= self.move_speed
         self.rect.x -= self.move_speed
 
     def collisDetect(self,bird : Bird) -> bool:
-        if self.rect.colliderect(bird.rect):
+        if self.upsideDown:
+            yoffset = 5
+        else:
+            yoffset = 15
+        xoffset = 10
+        woffset = 20
+        hoffset = 20
+        pillarHitx = self.rect.x + xoffset
+        pillarHity = self.rect.y + yoffset
+        newRect = pygame.Rect(pillarHitx,pillarHity,self.width - woffset ,self.height - hoffset )
+        if newRect.colliderect(bird.rect):
             return True
         return False
 
@@ -67,10 +82,7 @@ def start():
 
 def draw():
     drawBg()
-    regFont = pygame.font.Font(None,75)
-    scoremsg = regFont.render(str(score),True,(0,0,0))
-    score_rect = scoremsg.get_rect(center = (SCREEN_WIDTH/2,100))
-    SCREEN.blit(scoremsg,score_rect)
+    
     bird_img = Bird.img
     pipe_img = pygame.image.load('flappy_bird/pipe.png')
     scaled_bird = pygame.transform.scale(bird_img,(Bird.width,Bird.height))
@@ -85,14 +97,25 @@ def draw():
         #Debugging mode
         #pygame.draw.rect(SCREEN,(255,255,255),pillar.rect)
         #Hitbox debugging
-        pillaroffset = 5
-        pillarHitx = pillar.rect.x + pillaroffset
-        pillarHity = pillar.rect.y + pillaroffset
-        newRect = pygame.Rect(pillarHitx,pillarHity,Pillar.width - pillaroffset ,Pillar.height - pillaroffset )
-        pygame.draw.rect(SCREEN,(255,255,255),newRect)
+        #if pillar.upsideDown:
+        #    yoffset = 5
+        #else:
+        #    yoffset = 15
+        #xoffset = 10
+        #woffset = 20
+        #hoffset = 20
+        #pillarHitx = pillar.rect.x + xoffset
+        #pillarHity = pillar.rect.y + yoffset
+        #newRect = pygame.Rect(pillarHitx,pillarHity,Pillar.width - woffset ,Pillar.height - hoffset )
+        #pygame.draw.rect(SCREEN,(255,255,255),newRect)
+#
+    ##Bird hitbox debugging 
+    #pygame.draw.rect(SCREEN,(255,0,0),bird.rect)
+    regFont = pygame.font.Font(None,75)
+    scoremsg = regFont.render(str(score),True,(0,0,0))
+    score_rect = scoremsg.get_rect(center = (SCREEN_WIDTH/2,50))
+    SCREEN.blit(scoremsg,score_rect)
 
-    #Hitbox debugging 
-    pygame.draw.rect(SCREEN,(255,0,0),bird.rect)
     if gameOver:
         message = ['Q or X to quit' ,'R or J to continue','Final Score: {}'.format(score)]
         for num,line in enumerate(message):
@@ -107,12 +130,13 @@ def drawBg():
     SCREEN.blit(scaled_bg,(0,0))
 
 def logic(timer):
-    global gameOver,pillarList
+    global gameOver,pillarList,score
     if timer % 100  == 0:
         topHeight = 50
-        ycoord = random.randint(topHeight,SCREEN_HEIGHT - topHeight)
-        topCol = Pillar(SCREEN_WIDTH,0,True)
-        botCol = Pillar(SCREEN_WIDTH,SCREEN_HEIGHT - Pillar.height ,False)
+        distance = 200
+        ycoord = random.randint(topHeight,SCREEN_HEIGHT - topHeight - distance)
+        topCol = Pillar(SCREEN_WIDTH,ycoord,True)
+        botCol = Pillar(SCREEN_WIDTH,ycoord + distance,False)
         pillarList.append(topCol)
         pillarList.append(botCol)
 
@@ -143,18 +167,14 @@ def logic(timer):
             pillar.move()
 
     #Logic for dying on pillars
-    pillaroffset = -75
-    birdoffset = 0
-    birdHitx = range(bird.rect.x + birdoffset,bird.rect.x + bird.width - birdoffset)
-    birdHity = range(bird.rect.y + birdoffset,bird.rect.y + bird.height - birdoffset)
     for pillar in pillarList:
-        pillarHitx = range(pillar.rect.x + pillaroffset,pillar.rect.x + pillar.width - pillaroffset)
-        pillarHity = range(pillar.rect.y + pillaroffset,pillar.rect.y + pillar.height - pillaroffset)
-        for hitx,hity in zip(pillarHitx,pillarHity):
-            if (hitx in birdHitx) and (hity in birdHity):
-                gameOver = True
-                bird.pillarDeath()
+        if pillar.collisDetect(bird):
+            gameOver = True
+            bird.pillarDeath()
 
+        if (bird.x + bird.width) in range(int(pillar.x + pillar.width / 4),int(pillar.x + (3 * pillar.width / 4))) and pillar.scoreValid:
+            score += 1
+            pillar.scoreValid = False
 
 def input():
     global pressed

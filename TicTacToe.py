@@ -252,7 +252,9 @@ class HardAI(Player):
         else:
             worst_score = 1000
             moves = [move for move in self.temp_board if isinstance(move,int)]
+            print(moves,'Not maximizing')
             for move in moves:
+                print(move)
                 og = copy.copy(self.temp_board[move])
                 self.temp_board[move] = self.letter
                 score = self.minimax(depth - 1,True)

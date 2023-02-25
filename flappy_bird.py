@@ -179,11 +179,19 @@ def logic(timer):
             pillar.scoreValid = False
 
 def input():
-    global pressed
+    global pressed,isRunning,gameOver
     key = pygame.key.get_pressed()
-    if (key[pygame.K_UP] or key[pygame.K_w] or key[pygame.K_SPACE] or pygame.mouse.get_pressed()[0]) and not pressed:
-        bird.flap()
-        pressed = True
+    if not gameOver:
+        if (key[pygame.K_UP] or key[pygame.K_w] or key[pygame.K_SPACE] or pygame.mouse.get_pressed()[0]) and not pressed:
+            bird.flap()
+            pressed = True
+    else:
+        if key[pygame.K_q] or key[pygame.K_x]:
+            isRunning = False
+
+        if key[pygame.K_r] or key[pygame.K_j]:
+            gameOver = False
+            start()
 
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()
@@ -206,8 +214,7 @@ if __name__ == '__main__':
     while isRunning:
         draw()
         logic(timer)
-        if not gameOver:
-            input()
+        input()
         for event in pygame.event.get():
             if event.type == pygame.KEYUP or event.type == pygame.MOUSEBUTTONUP:
                 pressed = False

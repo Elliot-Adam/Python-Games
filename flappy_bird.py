@@ -84,7 +84,7 @@ def start():
 
 def draw():
     drawBg()
-    
+
     bird_img = Bird.img
     pipe_img = pygame.image.load('flappy_bird/pipe.png')
     scaled_bird = pygame.transform.scale(bird_img,(Bird.width,Bird.height))
@@ -133,7 +133,11 @@ def drawBg():
 
 def logic(timer):
     global gameOver,pillarList,score
-    if timer % 100  == 0:
+    if gameOver:
+        for pillar in pillarList:
+            del pillar
+
+    if timer % 100 == 0:
         topHeight = 50
         distance = 125
         ycoord = random.randint(topHeight,SCREEN_HEIGHT - topHeight - distance)

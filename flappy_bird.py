@@ -45,11 +45,13 @@ class Pillar:
         self.y = y
         self.upsideDown = upsideDown
         self.height = self.y
-        self.rect : pygame.Rect = pygame.Rect(self.x,self.y,self.width,self.height)
         if self.upsideDown:
             self.scoreValid = True
+            self.y = 0
         else:
             self.scoreValid = False
+            self.height = SCREEN_HEIGHT - self.y
+        self.rect : pygame.Rect = pygame.Rect(self.x,self.y,self.width,self.height)
 
     def move(self):
         self.x -= self.move_speed
@@ -133,7 +135,7 @@ def logic(timer):
     global gameOver,pillarList,score
     if timer % 100  == 0:
         topHeight = 50
-        distance = 200
+        distance = 125
         ycoord = random.randint(topHeight,SCREEN_HEIGHT - topHeight - distance)
         topCol = Pillar(SCREEN_WIDTH,ycoord,True)
         botCol = Pillar(SCREEN_WIDTH,ycoord + distance,False)

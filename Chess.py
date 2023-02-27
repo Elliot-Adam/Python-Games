@@ -493,12 +493,12 @@ class Piece:
                 adjacent = [Convert.numToLetter[letterNum - 1]]
 
         possibleMoves = [value + str(num) for value in adjacent]
-        for possible in possibleMoves:
+        newPossibleMoves = possibleMoves.copy()
+        for possible in newPossibleMoves:
             if board.board_dict[possible] is None:
                 #Removes the taking moves where there is nothing; cant take nothing
                 possibleMoves.remove(possible)
                 
-        print('RETURNING FROM TAKE',possibleMoves)
         return possibleMoves
 
     def pawnMoving(self) -> list:
@@ -759,35 +759,47 @@ def playerInputLogic(color : str) -> None:
                     return   
                 #Selection is the piece object that the player is currently holding
                 possibleMoves = legalMoves(color,board.board_dict[coord])
-                if selection.name == 'PAWN':
-                    possibleMoves.extend(legalMoves(color,None))
-                for possible in possibleMoves:
-                    if chosenPiece == None or chosenPiece.color != color:
-                        if coord == possible:
-                            #Castling stuff
-                            if selection.name == 'KING' and (coord in selection.castling()):
-                                #If player chose to castle, move the king and rook accordingly
-                                Piece.s_castleCorres(possible)
+                if isinstance(possibleMoves,list):
+                    if selection.name == 'PAWN':
+                        possibleMoves.extend(legalMoves(color,None))
+                    for possible in possibleMoves:
+                        if chosenPiece == None or chosenPiece.color != color:
+                            if coord == possible:
+                                #Castling stuff
+                                if selection.name == 'KING' and (coord in selection.castling()):
+                                    #If player chose to castle, move the king and rook accordingly
+                                    Piece.s_castleCorres(possible)
 
-                            #En passant stuff
-                            if selection.name == 'PAWN' and selection.enPassant() and (coord in selection.enPassant()):
-                                #If player chose to en passant, remember to delete the piece
-                                Piece.s_castleCorres(possible)
+                                #En passant stuff
+                                if selection.name == 'PAWN' and selection.enPassant() and (coord in selection.enPassant()):
+                                    #If player chose to en passant, remember to delete the piece
+                                    Piece.s_enPassantCorres(possible)
 
-                            #Makes it so that a moved rook/king can't castle
-                            if selection.name == 'ROOK' or selection.name == 'KING':
-                                selection.castleBool = False
-                            mixer.Sound.play(Sounds.PIECE_DROP)
-                            board.change(coord,selection)
-                            sideChange(color)    
-                            break
+                                #Makes it so that a moved rook/king can't castle
+                                if selection.name == 'ROOK' or selection.name == 'KING':
+                                    selection.castleBool = False
+                                mixer.Sound.play(Sounds.PIECE_DROP)
+                                board.change(coord,selection)
+                                sideChange(color)    
+                                break
+                    else:
+                        #Code for what happens if the chosen spot isn't legal
+                        #Puts back the piece
+                        mixer.Sound.play(Sounds.PIECE_PICK_UP)
+                        board.change(selection.selectedCoord,selection)
+                        selected = False
+                        selection = None
                 else:
-                    #Code for what happens if the chosen spot isn't legal
-                    #Puts back the piece
-                    mixer.Sound.play(Sounds.PIECE_PICK_UP)
-                    board.change(selection.selectedCoord,selection)
-                    selected = False
-                    selection = None
+                    #In check 
+                    for possiblePiece, possibleMove in possibleMoves.items():
+                        if not coord == possibleMove:
+                            continue
+                        
+                        if not selection == possiblePiece:
+                            continue
+
+                        #Here we know that the selected piece can block the check with the current legal move
+
             else:
                 if board.board_dict[coord] is not None:
                     #Grabbing a piece, when you don't have one; only runs if there is a piece in that square
@@ -797,7 +809,8 @@ def playerInputLogic(color : str) -> None:
                         chosenPiece.selectedCoord = coord 
                         board.change(coord,None)
 
-    if selected:
+    #Highlight moves accordingly
+    if selected and not inCheckcolor == color:
         moves = legalMoves(color,None)
         if selection.name == 'PAWN':
             moves.extend(legalMoves(selection.color,selection.opposite()))
@@ -818,26 +831,26 @@ def legalMoves(color : str,chosenPiece : Piece) -> list:
 
     else:
         #Code for what happens if you are in check
-        possibleMoves = []
+        possibleMoves = {}
         for coord,piece in board.board_dict.items():
             if piece == None or piece.color == checkingPiece.color:
                 continue
 
             piece.selectedCoord = coord
             movesOfPieceTake : list = piece.rules(Piece(color,None,None))
-            movesOfPieceMove : list = piece.rules(Piece(None,None,None))
+            movesOfPieceMove : list = piece.rules(None)
             #Now we have a list of all the possible moves this piece could make
             for move in movesOfPieceTake:
                 if move == checkingPiece.coord:
                     #See if you can take the piece
-                    possibleMoves.append(move)
+                    possibleMoves[piece] = move
                 
             for move in movesOfPieceMove:
                 #See if you can get in the way of the check
                 moves = checkedKing.blockCheck()
                 if move in moves:
-                    #print('APPENDING',piece.name + piece.coord, move)
-                    possibleMoves.append(move)
+                    print('APPENDING',piece.name + piece.coord, move)
+                    possibleMoves[piece] = move
                     
     return possibleMoves        
                 
@@ -847,8 +860,6 @@ def highlightMoves(inputList : list) -> None:
     for move in inputList:
         #Move = coordinate like h3
         if board.board_dict[move] is None:
-            if selection.name == 'PAWN':
-                assert move[1] == selection.selectedCoord[1], 'PRINTING ILLEGAL TAKES'
             rect : pygame.Rect = board.rect_dict[move]
             smalldot = pygame.transform.scale(smalldotimg,(rect.width - 10,rect.height - 10))
             SCREEN.blit(smalldot,rect)
@@ -882,6 +893,7 @@ def checked() -> tuple:
                 
                 #Now we have all the moves that could take the king next turn
                 checkedKing = board.board_dict[move]
+                print('IN CHECK')
                 return (True,piece)
     return (False,Piece(None,None,None))
         
@@ -925,8 +937,6 @@ if __name__ == '__main__':
         draw_board()
         playerInputLogic(playerVal)
         draw_pieces()
-        if selected:
-            print(legalMoves(selection.opposite(),selection))
         if promotion:
             promotingPiece.promotion()
         

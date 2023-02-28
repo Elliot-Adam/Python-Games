@@ -27,8 +27,8 @@ class Convert:
 
 #Game Related Classes
 class Piece:
-    selectedCoord : str = None
     def __init__(self,color,name,coord):
+        self.selectedCoord : str = None
         self.color : str = color
         self.name : str = name
         self.coord : str = coord
@@ -40,6 +40,7 @@ class Piece:
 
     def rules(self,chosenPiece):
         """Returns list of all the coordinates where the piece can move to; has a match case for all the rules of the pieces"""
+        #assert selection == self,'RULES CAN ONLY BE CALLED WHEN SELECTED'
         match self.name:
             case 'PAWN':
                 possibleMoves = self.pawnRules(chosenPiece)
@@ -48,7 +49,7 @@ class Piece:
                 possibleMoves = self.knightRules()
             
             case 'BISHOP':
-                possibleMoves = self.bishopRules()                    
+                possibleMoves = self.bishopRules()           
                 
             case 'ROOK':
                 possibleMoves = self.rookRules()
@@ -75,18 +76,16 @@ class Piece:
         else:
             #Pawn logic for moving and en passant
             #If on starting square pawn can move two squares
-            pawnMove = self.pawnMoving()
-            if pawnMove:
-                possibleNums = pawnMove.copy()
+            if pawnMove := self.pawnMoving():
+                letter = self.selectedCoord[0]
+                possibleNums = pawnMove
+                possibleMoves = [letter + str(num) for num in possibleNums]
 
             #En passant stuff
-            enPassant = self.enPassant()
-            if enPassant:
+            if enPassant := self.enPassant():
                 possibleMoves.extend(enPassant)
                     
             #Moving logic for pawns; accounts for opening double move
-            letter = self.selectedCoord[0]
-            possibleMoves = [letter + str(num) for num in possibleNums]
   
         return possibleMoves
 
@@ -194,11 +193,19 @@ class Piece:
             for num in possibleNums:
                 if not 1 <= num <= 8:
                     continue
+                
+                coord = str(Convert.numToLetter[letter]) + str(num)
+                if board.board_dict[coord] != None:
+                    #If there is a piece there
+                    if board.board_dict[coord].color == self.color:
+                        continue
+                
+                #Makes sure move is in the board and move is not taking 
                 possibleMoves.append(str(Convert.numToLetter[letter]) + str(num))
 
-        possibleMoves.remove(self.selectedCoord)
-        if len(self.castling()) > 0:
-            possibleMoves.extend(self.castling())
+        #possibleMoves.remove(self.selectedCoord)
+        if castle := self.castling():
+            possibleMoves.extend(castle)
 
         return possibleMoves
 
@@ -323,8 +330,8 @@ class Piece:
                         for letterinc,numinc in [(1,1),(1,-1),(-1,1),(-1,-1)]:
                             diagMoves = []
                             found = False
-                            letterNum = Convert.letterNumDict[checkingPiece.selectedCoord[0]]
-                            num = int(checkingPiece.selectedCoord[1])
+                            letterNum = Convert.letterNumDict[checkingPiece.coord[0]]
+                            num = int(checkingPiece.coord[1])
                             while not found:
                                 try:
                                     #Move in that diagonal
@@ -362,8 +369,8 @@ class Piece:
                         for letterinc,numinc in [(0,1),(1,0),(-1,0),(0,-1)]:
                             lineMoves = []
                             found = False
-                            letterNum = Convert.letterNumDict[checkingPiece.selectedCoord[0]]
-                            num = int(checkingPiece.selectedCoord[1])
+                            letterNum = Convert.letterNumDict[checkingPiece.coord[0]]
+                            num = int(checkingPiece.coord[1])
                             while not found:
                                 try:
                                     #Move in that direction; straight line
@@ -400,8 +407,8 @@ class Piece:
                             #Bishop stuff
                             diagMoves = []
                             found = False
-                            letterNum = Convert.letterNumDict[checkingPiece.selectedCoord[0]]
-                            num = int(checkingPiece.selectedCoord[1])
+                            letterNum = Convert.letterNumDict[checkingPiece.coord[0]]
+                            num = int(checkingPiece.coord[1])
                             while not found:
                                 try:
                                     #Move in that diagonal
@@ -438,8 +445,8 @@ class Piece:
                         for letterinc,numinc in [(0,1),(1,0),(-1,0),(0,-1)]:
                                 lineMoves = []
                                 found = False
-                                letterNum = Convert.letterNumDict[checkingPiece.selectedCoord[0]]
-                                num = int(checkingPiece.selectedCoord[1])
+                                letterNum = Convert.letterNumDict[checkingPiece.coord[0]]
+                                num = int(checkingPiece.coord[1])
                                 while not found:
                                     try:
                                         #Move in that direction; straight line
@@ -675,9 +682,20 @@ def draw_pieces() -> None:
 def coordClicked(x : int,y : int) -> str:
     """Grabs the coordinate on the chess board based on the input"""
     num = int(8 - ((y - board.blankBuffer) // board.SQHEIGHT))
+    if num == 0:
+        num = 1
+    
+    if num == 9:
+        num = 8
     #Get the number by reversing the distance from the start of the board to the end of the board and dividing
     #By the square size to end up with the number between 1 and 8
-    letter = Convert.numToLetter[(((x - board.textBuffer) // board.SQLENGTH) + 1)]
+    letterNum = int(((x - board.textBuffer) // board.SQLENGTH) + 1)
+    if letterNum == 0:
+        letterNum = 1
+    
+    if letterNum == 9:
+        letterNum = 8
+    letter = Convert.numToLetter[letterNum]
     #Pretty much same thing down here except it gets converted back into a letter
     
     coord = letter + str(num)
@@ -747,6 +765,7 @@ def playerInputLogic(color : str) -> None:
                     board.board_dict[coord] = Piece(board.board_dict[coord].color,selectedPiece,coord)
                     promotion = False
                     promotingPiece = None
+                    look_if_checked()
 
             chosenPiece = board.board_dict[coord]
 
@@ -756,49 +775,43 @@ def playerInputLogic(color : str) -> None:
                     #You can put a piece back without it switching turns
                     board.change(coord,selection)
                     selected = False
-                    return   
+                    look_if_checked()
+                    return 
+                  
                 #Selection is the piece object that the player is currently holding
                 possibleMoves = legalMoves(color,board.board_dict[coord])
-                if isinstance(possibleMoves,list):
-                    if selection.name == 'PAWN':
-                        possibleMoves.extend(legalMoves(color,None))
-                    for possible in possibleMoves:
-                        if chosenPiece == None or chosenPiece.color != color:
-                            if coord == possible:
-                                #Castling stuff
-                                if selection.name == 'KING' and (coord in selection.castling()):
-                                    #If player chose to castle, move the king and rook accordingly
-                                    Piece.s_castleCorres(possible)
+                if selection.name == 'PAWN':
+                    possibleMoves.extend(legalMoves(color,None))
 
-                                #En passant stuff
-                                if selection.name == 'PAWN' and selection.enPassant() and (coord in selection.enPassant()):
-                                    #If player chose to en passant, remember to delete the piece
-                                    Piece.s_enPassantCorres(possible)
+                for possible in possibleMoves:
+                    if chosenPiece == None or chosenPiece.color != color:
+                        if coord == possible:
+                            #Castling stuff
+                            if selection.name == 'KING' and (coord in selection.castling()):
+                                #If player chose to castle, move the king and rook accordingly
+                                Piece.s_castleCorres(possible)
 
-                                #Makes it so that a moved rook/king can't castle
-                                if selection.name == 'ROOK' or selection.name == 'KING':
-                                    selection.castleBool = False
-                                mixer.Sound.play(Sounds.PIECE_DROP)
-                                board.change(coord,selection)
-                                sideChange(color)    
-                                break
-                    else:
-                        #Code for what happens if the chosen spot isn't legal
-                        #Puts back the piece
-                        mixer.Sound.play(Sounds.PIECE_PICK_UP)
-                        board.change(selection.selectedCoord,selection)
-                        selected = False
-                        selection = None
+                            #En passant stuff
+                            if selection.name == 'PAWN' and selection.enPassant() and (coord in selection.enPassant()):
+                                #If player chose to en passant, remember to delete the piece
+                                Piece.s_enPassantCorres(possible)
+
+                            #Makes it so that a moved rook/king can't castle
+                            if selection.name == 'ROOK' or selection.name == 'KING':
+                                selection.castleBool = False
+                            mixer.Sound.play(Sounds.PIECE_DROP)
+                            sideChange(color)    
+                            board.change(coord,selection)
+                            look_if_checked()
+                            break
+
                 else:
-                    #In check 
-                    for possiblePiece, possibleMove in possibleMoves.items():
-                        if not coord == possibleMove:
-                            continue
-                        
-                        if not selection == possiblePiece:
-                            continue
-
-                        #Here we know that the selected piece can block the check with the current legal move
+                    #Code for what happens if the chosen spot isn't legal
+                    #Puts back the piece
+                    mixer.Sound.play(Sounds.PIECE_PICK_UP)
+                    board.change(selection.selectedCoord,selection)
+                    selected = False
+                    selection = None
 
             else:
                 if board.board_dict[coord] is not None:
@@ -810,48 +823,54 @@ def playerInputLogic(color : str) -> None:
                         board.change(coord,None)
 
     #Highlight moves accordingly
-    if selected and not inCheckcolor == color:
+    if selected:
         moves = legalMoves(color,None)
-        if selection.name == 'PAWN':
-            moves.extend(legalMoves(selection.color,selection.opposite()))
-        highlightMoves(moves)
+        assert isinstance(moves,list),'ERROR AT THE END OF PLAYER INPUT LOGIC SEEING IF A PLAYER IS IN CHECK'
+        if not (inCheckbool and inCheckcolor == color):
+            #If you are not in check
+            if selection.name == 'PAWN':
+                moves.extend(legalMoves(selection.color,selection.opposite()))
+            highlightMoves(moves)
+        else:
+            highlightMoves(moves)
 
 def legalMoves(color : str,chosenPiece : Piece) -> list:
     global inCheckbool,inCheckcolor,checkingPiece
-    if not inCheckbool:
-        checkInfo = checked()
-        if checkInfo[0]:
-            inCheckbool = True
-            checkingPiece = checkInfo[1]
-            inCheckcolor = checkingPiece.opposite()
 
-
+    assert selected, 'ACCESS TO LEGAL MOVES WHEN A PIECE IS NOT SELECTED NOT PERMITTED'
     if not (inCheckbool and inCheckcolor == color):
+        #If you are not in check
         possibleMoves = selection.rules(chosenPiece)
 
     else:
         #Code for what happens if you are in check
-        possibleMoves = {}
-        for coord,piece in board.board_dict.items():
-            if piece == None or piece.color == checkingPiece.color:
-                continue
+        possibleMoves = []
+        movesTake = selection.rules(Piece(color,None,None))
+        #Moves that the pawn can take
+        movesMove = selection.rules(None)
+        if checkingPiece.coord in movesTake:
+            #Check if you can take the piece
+            possibleMoves.append(checkingPiece.coord)
 
-            piece.selectedCoord = coord
-            movesOfPieceTake : list = piece.rules(Piece(color,None,None))
-            movesOfPieceMove : list = piece.rules(None)
-            #Now we have a list of all the possible moves this piece could make
-            for move in movesOfPieceTake:
-                if move == checkingPiece.coord:
-                    #See if you can take the piece
-                    possibleMoves[piece] = move
-                
-            for move in movesOfPieceMove:
-                #See if you can get in the way of the check
-                moves = checkedKing.blockCheck()
-                if move in moves:
-                    print('APPENDING',piece.name + piece.coord, move)
-                    possibleMoves[piece] = move
-                    
+        if selection.name != 'KING':
+            #See if you can get in the way of the check
+            #Can't get in the way of the check if you are a king
+            block = set(checkedKing.blockCheck())
+            moves = set(movesMove)
+            comb = list(moves & block)
+            if comb:
+                print(comb)
+                possibleMoves.extend(comb)
+
+        else:
+            print('in')
+            covered = set(coveredMoves(selection.opposite()))
+            moves = set(movesMove)
+            comb = list(moves & covered)
+            if comb:
+                print([move for move in moves if move not in comb])
+                possibleMoves.extend([move for move in moves if move not in comb])
+
     return possibleMoves        
                 
 def highlightMoves(inputList : list) -> None:
@@ -893,15 +912,23 @@ def checked() -> tuple:
                 
                 #Now we have all the moves that could take the king next turn
                 checkedKing = board.board_dict[move]
-                print('IN CHECK')
+                piece.selectedCoord = None
                 return (True,piece)
+            piece.selectedCoord = None
     return (False,Piece(None,None,None))
         
 def coveredMoves(color) -> list:
     possibleMoves = []
     for piece in board.board_dict.values():
-        if piece.color == color:
-            possibleMoves.extend(piece.rules(None))
+        if piece == None:
+            continue
+        if piece.color != color:
+            continue
+        
+        piece.selectedCoord = piece.coord
+        possibleMoves.extend(piece.rules(Piece(color,None,None)))
+        piece.selectedCoord = None
+        assert piece.coord != None
 
     return possibleMoves
 
@@ -914,6 +941,25 @@ def checkStartingPos() -> bool:
                 startingPos = False
 
     return startingPos
+
+def look_if_checked() -> bool:
+    """Checks if a king is in check and updates globals accordingly"""
+    global inCheckbool,inCheckcolor,checkingPiece
+    if not inCheckbool:
+        checkInfo = checked()
+        if checkInfo[0]:
+            print('in check')
+            inCheckbool = True
+            checkingPiece = checkInfo[1]
+            inCheckcolor = checkingPiece.opposite()
+
+    else:
+        checkInfo = checked()
+        if not checkInfo[0]:
+            print('not in check')
+            inCheckbool = False
+            checkingPiece = None
+            inCheckcolor = None
 
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()

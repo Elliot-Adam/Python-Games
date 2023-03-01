@@ -69,8 +69,7 @@ class Piece:
         #Pawn Logic for taking
         possibleMoves = []
         if chosenPiece is not None:
-            pawnTake = self.pawnTaking()
-            if pawnTake:
+            if pawnTake := self.pawnTaking():
                 possibleMoves.extend(pawnTake)
                             
         else:
@@ -499,7 +498,15 @@ class Piece:
             except KeyError:
                 adjacent = [Convert.numToLetter[letterNum - 1]]
 
-        possibleMoves = [value + str(num) for value in adjacent]
+
+            if num not in range(1,9):
+                num = None
+
+            for move in adjacent.copy():
+                if move not in string.ascii_lowercase[:8]:
+                    adjacent[adjacent.index(move)] = None
+
+        possibleMoves = [value + str(num) for value in adjacent if value and num]
         newPossibleMoves = possibleMoves.copy()
         for possible in newPossibleMoves:
             if board.board_dict[possible] is None:
@@ -510,11 +517,29 @@ class Piece:
 
     def pawnMoving(self) -> list:
         if self.color == 'WHITE':
-            if self.selectedCoord[1] == '2' and board.board_dict[self.selectedCoord[0] + str(int(self.selectedCoord[1]) + 1)] == None:
-                possibleNums = [int(self.selectedCoord[1]) + 1, int(self.selectedCoord[1]) + 2]
+            oneforward = int(self.selectedCoord[1]) + 1
+            twoforward = oneforward + 1
+            if oneforward > 8:
+                return []
+            
+            if not board.board_dict[self.selectedCoord[0] + str(oneforward)] is None:
+                #If the space in front is occupied, you can't move
+                return []
+            
+            if self.selectedCoord[1] == '2':
+                possibleNums = [oneforward, twoforward]
             else:
-                possibleNums = [int(self.selectedCoord[1]) + 1]
+                possibleNums = [oneforward]
         else:
+            oneforward = int(self.selectedCoord[1]) - 1
+            twoforward = oneforward - 1
+            if oneforward < 1:
+                return []
+            
+            if not board.board_dict[self.selectedCoord[0] + str(oneforward)] is None:
+                #If the space in front is occupied, you can't move
+                return []
+            
             if self.selectedCoord[1] == '7' and board.board_dict[str(self.selectedCoord[0] + str(int(self.selectedCoord[1]) - 1))] == None:
                 possibleNums = [int(self.selectedCoord[1]) - 1, int(self.selectedCoord[1]) - 2]
             else:
@@ -762,9 +787,10 @@ def playerInputLogic(color : str) -> None:
                 if coord == promotingPiece.coord:
                     selectedPiece = quarterCoordClicked(x,y,coord)
                     del board.board_dict[coord]
-                    board.board_dict[coord] = Piece(board.board_dict[coord].color,selectedPiece,coord)
+                    board.board_dict[coord] = Piece(promotingPiece.color,selectedPiece,coord)
                     promotion = False
                     promotingPiece = None
+                    #Looks for check after promotion
                     look_if_checked()
 
             chosenPiece = board.board_dict[coord]
@@ -775,13 +801,12 @@ def playerInputLogic(color : str) -> None:
                     #You can put a piece back without it switching turns
                     board.change(coord,selection)
                     selected = False
+                    #Looks for cehcks after you put your piece back 
                     look_if_checked()
                     return 
                   
                 #Selection is the piece object that the player is currently holding
                 possibleMoves = legalMoves(color,board.board_dict[coord])
-                if selection.name == 'PAWN':
-                    possibleMoves.extend(legalMoves(color,None))
 
                 for possible in possibleMoves:
                     if chosenPiece == None or chosenPiece.color != color:
@@ -802,6 +827,7 @@ def playerInputLogic(color : str) -> None:
                             mixer.Sound.play(Sounds.PIECE_DROP)
                             sideChange(color)    
                             board.change(coord,selection)
+                            #Looks if checked after piece gets put down
                             look_if_checked()
                             break
 
@@ -859,16 +885,13 @@ def legalMoves(color : str,chosenPiece : Piece) -> list:
             moves = set(movesMove)
             comb = list(moves & block)
             if comb:
-                print(comb)
                 possibleMoves.extend(comb)
 
         else:
-            print('in')
             covered = set(coveredMoves(selection.opposite()))
             moves = set(movesMove)
             comb = list(moves & covered)
             if comb:
-                print([move for move in moves if move not in comb])
                 possibleMoves.extend([move for move in moves if move not in comb])
 
     return possibleMoves        
@@ -888,6 +911,9 @@ def highlightMoves(inputList : list) -> None:
             rect : pygame.Rect = board.rect_dict[move].copy()
             rect.x -= offset
             rect.y -= offset
+            rect.width += offset - 3
+            rect.height += offset - 3
+            rect
             bigdot = pygame.transform.scale(bigdotimg,(rect.width,rect.height))
             SCREEN.blit(bigdot,rect)
 
@@ -948,7 +974,6 @@ def look_if_checked() -> bool:
     if not inCheckbool:
         checkInfo = checked()
         if checkInfo[0]:
-            print('in check')
             inCheckbool = True
             checkingPiece = checkInfo[1]
             inCheckcolor = checkingPiece.opposite()
@@ -956,7 +981,6 @@ def look_if_checked() -> bool:
     else:
         checkInfo = checked()
         if not checkInfo[0]:
-            print('not in check')
             inCheckbool = False
             checkingPiece = None
             inCheckcolor = None

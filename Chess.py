@@ -141,8 +141,6 @@ class Piece:
                 except KeyError:
                     pass
 
-        if self.color == 'WHITE' and self.coord[1] != '1' and self.coord != '8' and self.name == 'BISHOP':
-            print(possibleMoves)
         return possibleMoves
 
     def rookRules(self) -> list:
@@ -831,6 +829,7 @@ def playerInputLogic(color : str) -> None:
                             sideChange(color)    
                             board.change(coord,selection)
                             #Looks if checked after piece gets put down
+                            #look_if_mated(color)
                             look_if_checked()
                             break
 
@@ -872,33 +871,30 @@ def legalMoves(color : str,chosenPiece : Piece) -> list:
         possibleMoves = selection.rules(chosenPiece)
 
     else:
-        #Code for what happens if you are in check
-        possibleMoves = []
-        movesTake = selection.rules(Piece(color,None,None))
-        #Moves that the pawn can take
-        movesMove = selection.rules(None)
-        if checkingPiece.coord in movesTake:
-            #Check if you can take the piece
-            possibleMoves.append(checkingPiece.coord)
-
-        if selection.name != 'KING':
-            #See if you can get in the way of the check
-            #Can't get in the way of the check if you are a king
-            block = set(checkedKing.blockCheck())
-            moves = set(movesMove)
-            comb = list(moves & block)
-            if comb:
-                possibleMoves.extend(comb)
-        else:
-            covered = set(coveredMoves(selection.opposite()))
-            moves = set(movesMove)
-            comb = list(moves & covered)
-            
-            if comb:
-                possibleMoves.extend([move for move in moves if move not in comb])
+        possibleMoves = checkLegalMoves(color)
 
     return possibleMoves        
-                
+
+def checkLegalMoves(color) -> list:
+    #Code for what happens if you are in check
+    possibleMoves = []
+    movesTake = selection.rules(Piece(color,None,None))
+    #Moves that the pawn can take
+    movesMove = selection.rules(None)
+    if checkingPiece.coord in movesTake:
+        #Check if you can take the piece
+        if selection.name != 'KING' or (checkingPiece.coord in move_not_to_covered(movesMove)):
+            possibleMoves.append(checkingPiece.coord)
+
+    if selection.name != 'KING':
+        #See if you can get in the way of the check
+        #Can't get in the way of the check if you are a king
+        possibleMoves.extend(move_to_block(movesMove))
+        
+    else:
+        #See if the king can run to a space that isn't covered by an enemy piece
+        possibleMoves.extend(move_not_to_covered(movesMove))
+
 def highlightMoves(inputList : list) -> None:
     smalldotimg = pygame.image.load('Chess/DOT_SMALL.png')
     bigdotimg = pygame.image.load('Chess/DOT_BIG.png')
@@ -959,6 +955,7 @@ def coveredMoves(color) -> list:
         piece.selectedCoord = None
         assert piece.coord != None
 
+    #print('covered moves ', possibleMoves)
     return possibleMoves
 
 def checkStartingPos() -> bool:
@@ -988,27 +985,63 @@ def look_if_checked() -> bool:
             checkingPiece = None
             inCheckcolor = None
 
+def look_if_mated(color) -> None:
+    if no_legal_moves(color):
+        if inCheckbool and inCheckcolor == color:
+            print('Checkmate')
+            pygame.quit()
+            quit()
+
+        else:
+            print('stalemate')
+            pygame.quit()
+            quit()
+
+def move_not_to_covered(l_moves) -> list:
+    possibleMoves = []
+    s_moves = set(l_moves)
+    covered = set(coveredMoves(selection.opposite()))
+    comb = list(s_moves & covered)
+    if comb:
+        possibleMoves.extend([move for move in l_moves if move not in comb])
+
+    return possibleMoves
+
+def move_to_block(moves) -> list:
+    possibleMoves = []
+    s_moves = set(moves)
+    block = set(checkedKing.blockCheck())
+    comb = list(s_moves & block)
+    if comb:
+        possibleMoves.extend(comb)
+
+    return possibleMoves
+
 def no_legal_moves(color) -> bool:
-    for piece in board.board_dict():
+    for piece in board.board_dict.values():
         if piece == None:
             continue
 
         if piece.color != color:
             continue
 
-        if piece.name == 'PAWN':
-            legal : list = selection.rules(Piece(color,None,None))
-            legal.extend(selection.rules(None))
+        piece.selectedCoord = piece.coord
+        if piece.name != 'PAWN':
+            legal = legalMoves(piece.color, Piece(None,None,None)) 
+            legal.extend(legalMoves(piece.color, None))
         else:
-            legal : list = selection.rules(None)
-        
+            legal = legalMoves(piece.color,Piece(None,None,None))
+        piece.selectedCoord = None
+
         if legal:
             break
 
     else:
-        return False
-    return True
+        return True
+    return False
 
+def no_legal_moves_back():
+    pass
 
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()

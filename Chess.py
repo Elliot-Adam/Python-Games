@@ -141,6 +141,8 @@ class Piece:
                 except KeyError:
                     pass
 
+        if self.color == 'WHITE' and self.coord[1] != '1' and self.coord != '8' and self.name == 'BISHOP':
+            print(possibleMoves)
         return possibleMoves
 
     def rookRules(self) -> list:
@@ -202,7 +204,8 @@ class Piece:
                 #Makes sure move is in the board and move is not taking 
                 possibleMoves.append(str(Convert.numToLetter[letter]) + str(num))
 
-        #possibleMoves.remove(self.selectedCoord)
+        if self.selectedCoord in possibleMoves:
+            possibleMoves.remove(self.selectedCoord)
         if castle := self.castling():
             possibleMoves.extend(castle)
 
@@ -886,11 +889,11 @@ def legalMoves(color : str,chosenPiece : Piece) -> list:
             comb = list(moves & block)
             if comb:
                 possibleMoves.extend(comb)
-
         else:
             covered = set(coveredMoves(selection.opposite()))
             moves = set(movesMove)
             comb = list(moves & covered)
+            
             if comb:
                 possibleMoves.extend([move for move in moves if move not in comb])
 
@@ -984,6 +987,28 @@ def look_if_checked() -> bool:
             inCheckbool = False
             checkingPiece = None
             inCheckcolor = None
+
+def no_legal_moves(color) -> bool:
+    for piece in board.board_dict():
+        if piece == None:
+            continue
+
+        if piece.color != color:
+            continue
+
+        if piece.name == 'PAWN':
+            legal : list = selection.rules(Piece(color,None,None))
+            legal.extend(selection.rules(None))
+        else:
+            legal : list = selection.rules(None)
+        
+        if legal:
+            break
+
+    else:
+        return False
+    return True
+
 
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()

@@ -792,7 +792,7 @@ def playerInputLogic(color : str) -> None:
                     promotion = False
                     promotingPiece = None
                     #Looks for check after promotion
-                    look_if_checked()
+                    update_check_status()
 
             chosenPiece = board.board_dict[coord]
 
@@ -803,7 +803,7 @@ def playerInputLogic(color : str) -> None:
                     board.change(coord,selection)
                     selected = False
                     #Looks for cehcks after you put your piece back 
-                    look_if_checked()
+                    update_check_status()
                     return 
                   
                 #Selection is the piece object that the player is currently holding
@@ -830,7 +830,7 @@ def playerInputLogic(color : str) -> None:
                             board.change(coord,selection)
                             #Looks if checked after piece gets put down
                             #look_if_mated(color)
-                            look_if_checked()
+                            update_check_status()
                             break
 
                 else:
@@ -876,6 +876,7 @@ def legalMoves(color : str,chosenPiece : Piece) -> list:
     return possibleMoves        
 
 def checkLegalMoves(color) -> list:
+    """Legal moves when you are in check"""
     #Code for what happens if you are in check
     possibleMoves = []
     movesTake = selection.rules(Piece(color,None,None))
@@ -968,22 +969,34 @@ def checkStartingPos() -> bool:
 
     return startingPos
 
-def look_if_checked() -> bool:
-    """Checks if a king is in check and updates globals accordingly"""
+def look_if_checked() -> tuple:
+    """Checks if a king is in check"""
     global inCheckbool,inCheckcolor,checkingPiece
     if not inCheckbool:
         checkInfo = checked()
         if checkInfo[0]:
-            inCheckbool = True
-            checkingPiece = checkInfo[1]
-            inCheckcolor = checkingPiece.opposite()
+            return True,checkInfo[1].opposite()
 
     else:
         checkInfo = checked()
         if not checkInfo[0]:
-            inCheckbool = False
-            checkingPiece = None
-            inCheckcolor = None
+            return False,None
+        
+    return None,None
+
+def update_check_status():
+    """Updates check globals"""
+    global checkingPiece,inCheckbool,inCheckcolor
+    checkBool,inCheckcolor = look_if_checked()
+    if checkBool:
+        checkInfo = checked()
+        inCheckbool = True
+        checkingPiece = checkInfo[1]
+    
+    elif checkBool is not None:
+        inCheckbool = False
+        checkingPiece = None
+        inCheckcolor = None
 
 def look_if_mated(color) -> None:
     if no_legal_moves(color):
@@ -1017,6 +1030,9 @@ def move_to_block(moves) -> list:
 
     return possibleMoves
 
+def check_for_discovery():
+    pass
+
 def no_legal_moves(color) -> bool:
     for piece in board.board_dict.values():
         if piece == None:
@@ -1027,7 +1043,7 @@ def no_legal_moves(color) -> bool:
 
         piece.selectedCoord = piece.coord
         if piece.name != 'PAWN':
-            legal = legalMoves(piece.color, Piece(None,None,None)) 
+            legal = legalMoves(piece.color, Piece(None,None,None))             
             legal.extend(legalMoves(piece.color, None))
         else:
             legal = legalMoves(piece.color,Piece(None,None,None))
@@ -1039,9 +1055,6 @@ def no_legal_moves(color) -> bool:
     else:
         return True
     return False
-
-def no_legal_moves_back():
-    pass
 
 if __name__ == '__main__':
     CLOCK = pygame.time.Clock()

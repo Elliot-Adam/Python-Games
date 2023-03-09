@@ -1,7 +1,7 @@
 import pygame
 import random
 import math
-import time
+
 pygame.init()
 
 def start():

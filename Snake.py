@@ -4,8 +4,12 @@ import math
 
 pygame.init()
 
+class Vars:
+    new = False
+
 def start():
     global playerX,playerY,dir,score,alone,speed,playerWidth,playerHeight,game_over,tailList
+    Vars.new = False
     tailList = []
     game_over = False
     playerX,playerY = SCREEN_LENGTH / 2 - 1, SCREEN_HEIGHT / 2 - 1    
@@ -119,7 +123,19 @@ def draw():
         
     
     else:
-        message = ['Q or X to quit' ,'R or J to continue','Final Score: {}'.format(score)]
+        
+        with open('SnakeHScore.txt','r') as f:
+            hscore = f.readline()
+            if score > int(hscore):
+                Vars.new = True
+                hscore = score
+                with open('SnakeHScore.txt','w') as h:
+                    h.write(str(score))
+
+        nmes = ''
+        if Vars.new:
+            nmes = 'NEW '
+        message = ['Q or X to quit' ,'R or J to continue','Final Score: {}'.format(score),'{}High Score: {}'.format(nmes,hscore)]
         for num,line in enumerate(message):
             regFont = pygame.font.Font(None,30)
             scoreprint = regFont.render(line,True,(255,255,255))

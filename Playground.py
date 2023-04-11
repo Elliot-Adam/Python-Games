@@ -417,7 +417,6 @@ def most_common_word():
     lines = open(fname)
     words = {}
     mcw = []
-    largestM = None
     for line in lines:
         line = line.split()
         for word in line:

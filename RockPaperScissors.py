@@ -2,231 +2,180 @@
 #Imports
 import random
 import time
+from abc import abstractmethod
+class Shape:
+    class Rock:
+        image = '''
+       ,--.--._  
+------" _, \___) 
+        / _/____)
+        \ /(____)
+------\     (__) 
+       `-----"   
+'''
 
-#Ascii art
-class Shapes:
-    def rock():
-        return'''
-               ,--.--._     
-        ------" _, \___)    
-                / _/____)   
-                \ /(____)   
-        ------\     (__)    
-                `-----"     
-        '''
+        def __gt__(self,other):
+            if isinstance(other,Shape.Scissors):
+                return True
+            
+            return False
+        
+        def __lt__(self,other):
+            if isinstance(other,Shape.Paper):
+                return True
+            
+            return False
+        
+        def __str__(self):
+            return 'Rock'
+        
+    class Scissors:
+        image = '''
+             
+ __       ,/'
+(__).  ,/'   
+ __  ::      
+(__)'  `\.   
+          `\.
+''' 
 
-    def scissors():
-        return'''
-                            
-         __       ,/'        
-        (__).  ,/'           
-         __  ::              
-        (__)'  `\.           
-                  `\.        
-        '''    
+        def __gt__(self,other):
+            if isinstance(other,Shape.Paper):
+                return True
+            
+            return False
+        
+        def __lt__(self,other):
+            if isinstance(other,Shape.Rock):
+                return True
+            
+            return False
+        
+        def __str__(self):
+            return 'Scissors'
+        
+    class Paper:
+        image = '''
+     _________
+    /        /
+   /        / 
+  /        /  
+ /        /   
+/________/    
+''' 
 
-    def paper():
-        return'''
-                _________          
-               /        /          
-              /        /           
-             /        /            
-            /________/             
-                                
-        '''
-#Prints
-def countdown():
-    for i in [3,2,1]:
-        Delay(0.5)
-        print(i)
+        def __gt__(self,other):
+            if isinstance(other,Shape.Rock):
+                return True
+            
+            return False
+        
+        def __lt__(self,other):
+            if isinstance(other,Shape.Scissors):
+                return True
+            
+            return False
+        
+        def __str__(self):
+            return 'Paper'
 
-def errormes():
-    print("\nPlease input your selection of 1, 2 ,or 3\n")
+class Player:
+    score = 0
+    shape = None
 
-def Delay(amount):
-    time.sleep(amount)
+    @abstractmethod
+    def choice_getter(self):
+        ...
 
-def Chose(parameter):
-    print(parameter,'chose\n')
-    Delay(0.25)
-    
-def Score(score1,score2):
-    print('Player Score: {} Computer Score: {}'.format(score1,(score2 * -1)))
+    @property
+    def invertedShape(self):
+        return invShape(self.shape)
 
-def Winner(winner):
-    print (winner, ("wins"))
+class Person(Player):
+    name = 'Player'
+    responseDict = {'1' : Shape.Rock(), '2' : Shape.Paper(), '3' : Shape.Scissors()}
+    def choice_getter(self):
+        while True:
+            pc = input('Choose\n1. Rock\n2. Paper\n3. Scissors\n')
+            self.shape = self.responseDict.get(pc,None)
+            if self.shape != None:
+                break
 
-def image(image1,image2):
-    splitimageleft = image1().split('\n')
-    splitimageright = invert(image2()).split('\n')
-    smallerImage = min(len(splitimageleft),len(splitimageright))
-    for i,_ in enumerate(range(0,smallerImage)):
-        print(splitimageleft[i] + splitimageright[i])
+            if pc.title() in ['Rock', 'Scissors', 'Paper']:
+                self.shape = eval('Shape.' + pc.title() + '()')
+                assert (isinstance(self.shape, Shape.Rock)
+                         or isinstance(self.shape,Shape.Paper) 
+                          or isinstance(self.shape,Shape.Scissors)), f'EVAL SHAPE INITIALIZING not initializing properly, self.shape is type {type(self.shape)}, Shape.{pc.title()}()'
+                break
 
+            print('Please input a given option')
 
-#Invert Ascii Art
-def turnAround(strng:str):
-    return strng[::-1]
+class AI(Player):
+    name = 'Computer'
+    def choice_getter(self):
+        self.shape = random.choice([Shape.Rock(),Shape.Paper(),Shape.Scissors()])
 
-def invert(shape:str):
-    splitShape = shape.split('\n')
-    newShapeList = []
-    for line in splitShape:
-        revline = turnAround(line)
-        checkedRevLine = invertCharc(revline)
-        newShapeList.append(checkedRevLine)
-        finalShapeList = "\n".join(newShapeList)
-    return finalShapeList
-
-def invertCharc(string:str):
+def invChars(string : str):
     table = string.maketrans(r'()[]{}<>/\\',r')(][}{><\\/')
     string = string.translate(table)
     return string
 
+def invShape(shape : str):
+    splitShape = shape.image.split('\n')
+    newShapeList = []
+    for line in splitShape:
+        newShapeList.append(invChars(line[::-1]))
+    finalShapeList = '\n'.join(newShapeList)
+    return finalShapeList
 
-#Inputs
-def scoreGetter():
+def combShapes(s1 : str,s2 : str):
+    s1list = s1.split('\n')
+    s2list = s2.split('\n')
+    flist = []
+    for index in range(min(len(s1list), len(s2list))):
+        flist.append(s1list[index] + '     ' + s2list[index])
+
+    return '\n'.join(flist) 
+
+def doneAsk():
+    viable_responses = {'Yes' : True, '1' : True, '2' : False, 'No' : False}
     while True:
-        breaker = False
-        scoreGoalValid = [1,3,5]
-        scoreGoalInput = input("Best of 1 , 3 , 5\n")
-        try:
-            int(scoreGoalInput)
-        except ValueError:
-            print("\nCannot use letters\n")
-            continue
-        if int(scoreGoalInput) in scoreGoalValid:
-            intscoreGoalInput = int(scoreGoalInput)
-            breaker = True 
-        else:
-            print("\nInvalid\n")
-        if breaker:
-            return [intscoreGoalInput,(intscoreGoalInput * -1)]
+        inp = input('Would you like to keep playing\n1. Yes\n2. No\n')
+        ret = viable_responses.get(inp.title(),None)
+        if ret != None:
+            return ret
+        print('Please choose a valid option')
 
-def Player_choice():
-    while True:
-        pc = input("Choose\n1. Rock\n2. Paper\n3. Scissors\n")
-        print ("\n")
-        if len(pc) > 1:
-            errormes()
-            continue
-        try:
-            pci = int(pc)
-        except:
-            errormes()
-            continue
-        if not pci in [1,2,3]:
-            errormes()
-            continue
+def gLoop():
+    p1 = Person()
+    p2 = AI()
+    run = True
+    while run:
+        state = turn(p1,p2)
+        if not state:
+            run = False
 
-        if pci == 1: 
-            return 'pcr'
-        elif pci == 2:
-            return 'pcp'
-        elif pci == 3:
-            return 'pcs'
+def turn(p1 : Player, p2 : Player):
+    p1.choice_getter()
+    p2.choice_getter()
+    for i in range(3): print(abs(3-i)) , time.sleep(0.5)
+    print(combShapes(p1.shape.image,p2.invertedShape))
+    defeat_dict = {Shape.Rock : 'crushes' , Shape.Paper : 'covers' , Shape.Scissors : 'cuts'}
+    if p1.shape.__class__ != p2.shape.__class__:
+        print(max(p1.shape,p2.shape), defeat_dict[max(p1.shape,p2.shape).__class__] , min(p1.shape,p2.shape))
+        if max(p1.shape,p2.shape) == p1.shape: 
+            print('Player won')
+            p1.score += 1
+        else: 
+            print('Computer won')
+            p2.score += 1
 
-def AI_choice(numa):
-    ac = random.choice(numa)
-    Delay(0.75)
-    if ac == 1:
-        return 'acr'
-    if ac == 2:
-        return 'acp'
-    if ac == 3:
-        return 'acs'
-
-def finishvars(search):
-    match search:
-        case 'rr':
-            image(Shapes.rock,Shapes.rock)
-            return 't'
-        case 'rs':
-            image(Shapes.rock,Shapes.scissors)
-            return 'w'
-        case 'rp':
-            image(Shapes.rock,Shapes.paper)
-            return 'l'
-        case 'ss':
-            image(Shapes.scissors,Shapes.scissors)
-            return 't'
-        case 'sp':
-            image(Shapes.scissors,Shapes.paper)
-            return 'w'
-        case 'sr': 
-            image(Shapes.scissors,Shapes.rock)
-            return 'l'
-        case 'pp':
-            image(Shapes.paper,Shapes.paper)
-            return 't'
-        case 'pr':
-            image(Shapes.paper,Shapes.rock)
-            return 'w'
-        case 'ps':
-            image(Shapes.paper,Shapes.scissors)
-            return 'l'
-
-def doneprompt():
-    z = input("Do you want to play again\nYes\nNo\n")
-    if z == "Yes" or z == "yes":
-        return False
-    if z == "No" or z == "no":
-        print ("Thanks for Playing")
-        return True
-    print("Invalid\n")
-
-def combinations(pchoice,achoice):
-    countdown()
-    outcome = finishvars(pchoice[2] + achoice[2])
-    if outcome == 'w':
-        Winner('Player')
-        return 'p'
-    if outcome == 'l':
-        Winner('Computer')
-        return 'a'
-    if outcome == 't':
-        print('Tie Game')
-        return 't'
-
-def scoreCheck(score):
-    if score in scoreGoal:
-        if score > 0:
-            return setWinner('Player')
-        elif score < 0:
-            return setWinner('Computer')
     else:
-        return 'f'
-    
-def setWinner(setwinner):
-    print (setwinner, "wins the set")
-    dp = doneprompt()
-    return dp
+        print('Tie')
 
+    #Score
+    print(f'Player Score: {p1.score}, Computer Score: {p2.score}')
+    return doneAsk()
+    
 if __name__ == '__main__':
-    donePlaying = False
-    while not donePlaying:
-        pscore = 0
-        ascore = 0
-        scoreGoal = scoreGetter()
-        while True:
-            player_decision = Player_choice()
-            Chose('Player')
-            AI_decision = AI_choice([1,2,3])
-            Chose('Computer')
-            finalOutcome = combinations(player_decision,AI_decision)
-            if finalOutcome == 't':
-                continue
-            if finalOutcome == 'p':
-                pscore += 1
-            if finalOutcome == 'a':
-                ascore -= 1
-            Score(pscore,ascore)
-            Delay(0.7)
-            donePlaying = scoreCheck(ascore)
-            donePlaying = scoreCheck(pscore)
-            if not donePlaying == 'f':
-                if not donePlaying:
-                    pscore = 0
-                    ascore = 0
-                else:
-                    break
+    gLoop()

@@ -3,6 +3,7 @@
 import random
 import time
 from abc import abstractmethod
+
 class Shape:
     class Rock:
         image = '''
@@ -96,7 +97,7 @@ class Person(Player):
     responseDict = {'1' : Shape.Rock(), '2' : Shape.Paper(), '3' : Shape.Scissors()}
     def choice_getter(self):
         while True:
-            pc = input('Choose\n1. Rock\n2. Paper\n3. Scissors\n')
+            pc = input('\nChoose\n1. Rock\n2. Paper\n3. Scissors\n')
             self.shape = self.responseDict.get(pc,None)
             if self.shape != None:
                 break
@@ -158,6 +159,7 @@ def gLoop():
 def turn(p1 : Player, p2 : Player):
     p1.choice_getter()
     p2.choice_getter()
+    print()
     for i in range(3): print(abs(3-i)) , time.sleep(0.5)
     print(combShapes(p1.shape.image,p2.invertedShape))
     defeat_dict = {Shape.Rock : 'crushes' , Shape.Paper : 'covers' , Shape.Scissors : 'cuts'}
@@ -175,6 +177,7 @@ def turn(p1 : Player, p2 : Player):
 
     #Score
     print(f'Player Score: {p1.score}, Computer Score: {p2.score}')
+
     return doneAsk()
     
 if __name__ == '__main__':

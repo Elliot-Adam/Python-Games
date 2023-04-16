@@ -16,9 +16,10 @@ class Get_Indexes:
         row_list = []
         for col in range(6):
             for row in range(4):
-                index = (col + 1) * 7 + row 
-                if ((index) % 7) == ((index + 1) % 7) == \
-                ((index + 2) % 7) ==  ((index + 3) % 7):
+                index = col * 7 + row 
+                #print(index)
+                if ((index) // 7) == ((index + 1) // 7) == \
+                ((index + 2) // 7) ==  ((index + 3) // 7):
                     row_list.append([index,index + 1,index + 2,index + 3])
 
         return row_list
@@ -54,6 +55,7 @@ class Board:
         for num in range(42): self.board_list.append(num + 1)
 
     def print_board(self):
+        print()
         print('  ',end='')
         for i in range(7): print(i + 1,end='   ')
         print()
@@ -67,11 +69,9 @@ class Board:
                 print('| ',end='')
                 ldone += 1
 
-            if isinstance(spot, int):
-                print(' ',end='')
-            
-            else:
-                print(spot,end='')
+        #Printing the colored chip or the empty space
+            if isinstance(spot, int): print(' ',end='')
+            else: print(spot,end='')
 
             if ldone == 7:
                 print(' | ')
@@ -195,9 +195,8 @@ def startup() -> int:
 def starterRequest() -> int:
     """Gets who the player wants to start"""
     while True:
-        starter = input('Who goes first\n1.Player\n2.AI\n3.Random\n')
         try:
-            starter = int(starter)
+            starter = int(input('Who goes first\n1.Player\n2.AI\n3.Random\n'))
         except:
             print('Please input 1, 2, or 3')
         if starter not in [1,2,3]:
@@ -206,7 +205,7 @@ def starterRequest() -> int:
         break
     return starter
 
-def end_check(board : Board):
+def win_check(board : Board):
     #Initializations
     wins = []
     rows = Get_Indexes.get_rows()
@@ -215,10 +214,10 @@ def end_check(board : Board):
     pos_diags = Get_Indexes.get_pos_diags()
 
     #Finding if it is a win
-    row_wins = [i for i in rows if len(set(list(map(lambda a: board.board_list[a]),i))) == 1]
-    col_wins = [i for i in cols if len(set(list(map(lambda a: board.board_list[a]),i))) == 1]
-    neg_diag_wins = [i for i in neg_diags if len(set(list(map(lambda a: board.board_list[a]),i))) == 1]
-    pos_diag_wins = [i for i in pos_diags if len(set(list(map(lambda a: board.board_list[a]),i))) == 1]
+    row_wins = [i for i in rows if len(set(list(map(lambda a: board.board_list[a],i)))) == 1]
+    col_wins = [i for i in cols if len(set(list(map(lambda a: board.board_list[a],i)))) == 1]
+    neg_diag_wins = [i for i in neg_diags if len(set(list(map(lambda a: board.board_list[a],i)))) == 1]
+    pos_diag_wins = [i for i in pos_diags if len(set(list(map(lambda a: board.board_list[a],i)))) == 1]
 
     #Adding it all to the wins list
     wins.extend(row_wins)
@@ -227,6 +226,16 @@ def end_check(board : Board):
     wins.extend(pos_diag_wins)
 
     return wins
+
+def done_playing() -> bool:
+    viable_responses = {'1' : True, '2' : False, 'Yes' : True, 'No' : False}
+    while True:
+        inp = input('Would you like to keep playing?\n1. Yes\n2. No')
+        ret = viable_responses.get(inp.title(),None)
+        if ret != None:
+            return ret
+        
+        print('Please choose one of the given options')
 
 #Level functions
 def player_vs_player(board : Board):
@@ -264,20 +273,42 @@ def turns(p1 : Player, p2 : Player, board : Board, first : int) -> None:
     board.print_board()
     while run:
         if first == 1:
-            run = turn_checks(p1,board)
-            run = turn_checks(p2,board)
+            if run:
+                run,winner = turn_checks(p1,board)
+            if run:
+                run,winner = turn_checks(p2,board)
         else:
-            run = turn_checks(p2,board)
-            run = turn_checks(p1,board)
+            if run:
+                run,winner = turn_checks(p2,board)
+            if run:
+                run,winner = turn_checks(p1,board)
+
+    assert winner != None, 'Winner found but not put into winner var'
+    winner.score += 1
+    print(f'{winner.name} won the game')
+    print(f'Score\n{p1.name}: {p1.score}, {p2.name}: {p2.score}')
 
 def turn_checks(p : Player,board : Board):
     p.choice_getter(board)
+    winner = None
     assert p.choice,f'Problem initializing player.choice in choice getter in the {p.__class__} class'
     board_change(p,p.choice,board)
+    wins = win_check(board)
+    state = not bool(wins)
+    #if true win has not been found
+    if not state:
+        print('win found')
+        for win in wins:
+            for index in win:
+                start = board.board_list[index].index(';40m')
+                tempstr = [c for c in board.board_list[index]]
+                tempstr.insert(start - 2, '1;')
+                board.board_list[index] = ''.join(tempstr)
+
+                winner = p
+    
     board.print_board()
-    wins = end_check(board)
-    state = bool(len(wins))
-    return state
+    return state,winner
 
 def game_modes():
     board = Board()
@@ -293,6 +324,9 @@ def game_modes():
             print('Please from the given options')
         else:
             ret(board)
+            dp = done_playing()
+            if not dp:
+                break
 
 #Main Game Code
 

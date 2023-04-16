@@ -86,9 +86,6 @@ class Board:
         return [8 - ((i % 7) + 1) for i in [41,40,39,38,37,36,35] if isinstance(self.board_list[i],int)]
 
 class Player:
-    def __init__(self):
-        self.score = 0
-
     @abstractmethod
     def choice_getter(self,board : Board):
         ...
@@ -137,6 +134,10 @@ class Person(Player):
         return colors(col)
 
 class AI(Player):
+    def __init__(self):
+        self.color = choice(Colors.color_og_list)
+        self.score = 0
+
     name = 'Computer'
 
     @abstractmethod
@@ -154,19 +155,23 @@ class HardAI(AI):
     def best_move(board : Board):
         pass
 
-#Functions
-def board_change(player : Player,spot : int,board : Board) -> None:
-    spot -= 1
+#General functions
+def board_change(player : Player,board : Board) -> None:
+    if player.__class__ == EasyAI:
+        print('good')
+        print('P CHOICE IN',player.choice)
+    player.choice -= 1
     try:
         while True:
-            if isinstance(board.board_list[spot],str):
+            if isinstance(board.board_list[player.choice],str):
                 #Spot is taken
-                spot += 7
+                player.choice += 7
                 continue
 
-            board.board_list[spot] = f'\x1b[{player.color}40mO\x1b[0m'
+            board.board_list[player.choice] = f'\x1b[{player.color}40mO\x1b[0m'
             break
     except:
+        print('not good',player.choice)
         pass
 
 def colors(color) -> str:
@@ -230,14 +235,14 @@ def win_check(board : Board):
 def done_playing() -> bool:
     viable_responses = {'1' : True, '2' : False, 'Yes' : True, 'No' : False}
     while True:
-        inp = input('Would you like to keep playing?\n1. Yes\n2. No')
+        inp = input('Would you like to keep playing?\n1. Yes\n2. No\n')
         ret = viable_responses.get(inp.title(),None)
         if ret != None:
             return ret
         
         print('Please choose one of the given options')
 
-#Level functions
+#Level and turn functions
 def player_vs_player(board : Board):
     p1 = Person('1')
     p2 = Person('2')
@@ -287,12 +292,18 @@ def turns(p1 : Player, p2 : Player, board : Board, first : int) -> None:
     winner.score += 1
     print(f'{winner.name} won the game')
     print(f'Score\n{p1.name}: {p1.score}, {p2.name}: {p2.score}')
+    dp = done_playing()
+    if dp:
+        board1 = Board()
+        turns(p1,p2,board1,first)
 
 def turn_checks(p : Player,board : Board):
     p.choice_getter(board)
+    if p.__class__ == EasyAI:
+        print('P CHOICE',p.choice)
     winner = None
     assert p.choice,f'Problem initializing player.choice in choice getter in the {p.__class__} class'
-    board_change(p,p.choice,board)
+    board_change(p,board)
     wins = win_check(board)
     state = not bool(wins)
     #if true win has not been found
@@ -315,7 +326,8 @@ def game_modes():
     viable_responses = {
     '1' : player_vs_player, 
     '2' : player_vs_ezai,
-    '3' : player_vs_hardai}
+    '3' : player_vs_hardai
+    }
 
     while True:
         inp = input('Choose game mode\n1. Player vs Player\n2. Player vs Easy AI\n3. Player vs Hard AI\n')
@@ -324,9 +336,7 @@ def game_modes():
             print('Please from the given options')
         else:
             ret(board)
-            dp = done_playing()
-            if not dp:
-                break
+            break
 
 #Main Game Code
 

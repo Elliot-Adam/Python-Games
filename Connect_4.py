@@ -83,7 +83,7 @@ class Board:
 
     @property
     def legal_moves(self):
-        return [(i % 8) + 1 for i in [41,40,39,38,37,36,35] if isinstance(self.board_list[i],int)]
+        return [8 - ((i % 7) + 1) for i in [41,40,39,38,37,36,35] if isinstance(self.board_list[i],int)]
 
 class Player:
     def __init__(self):
@@ -206,6 +206,28 @@ def starterRequest() -> int:
         break
     return starter
 
+def end_check(board : Board):
+    #Initializations
+    wins = []
+    rows = Get_Indexes.get_rows()
+    cols = Get_Indexes.get_cols()
+    neg_diags = Get_Indexes.get_neg_diags()
+    pos_diags = Get_Indexes.get_pos_diags()
+
+    #Finding if it is a win
+    row_wins = [i for i in rows if len(set(list(map(lambda a: board.board_list[a]),i))) == 1]
+    col_wins = [i for i in cols if len(set(list(map(lambda a: board.board_list[a]),i))) == 1]
+    neg_diag_wins = [i for i in neg_diags if len(set(list(map(lambda a: board.board_list[a]),i))) == 1]
+    pos_diag_wins = [i for i in pos_diags if len(set(list(map(lambda a: board.board_list[a]),i))) == 1]
+
+    #Adding it all to the wins list
+    wins.extend(row_wins)
+    wins.extend(col_wins)
+    wins.extend(neg_diag_wins)
+    wins.extend(pos_diag_wins)
+
+    return wins
+
 #Level functions
 def player_vs_player(board : Board):
     p1 = Person('1')
@@ -242,17 +264,20 @@ def turns(p1 : Player, p2 : Player, board : Board, first : int) -> None:
     board.print_board()
     while run:
         if first == 1:
-            turn_checks(p1,board)
-            turn_checks(p2,board)
+            run = turn_checks(p1,board)
+            run = turn_checks(p2,board)
         else:
-            turn_checks(p2,board)
-            turn_checks(p1,board)
+            run = turn_checks(p2,board)
+            run = turn_checks(p1,board)
 
 def turn_checks(p : Player,board : Board):
     p.choice_getter(board)
     assert p.choice,f'Problem initializing player.choice in choice getter in the {p.__class__} class'
     board_change(p,p.choice,board)
     board.print_board()
+    wins = end_check(board)
+    state = bool(len(wins))
+    return state
 
 def game_modes():
     board = Board()

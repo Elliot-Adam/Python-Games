@@ -3,7 +3,6 @@
 #Imports
 from abc import abstractmethod
 from random import choice
-from copy import deepcopy
 
 #Classes
 
@@ -154,51 +153,51 @@ class EasyAI(AI):
         self.choice = choice(board.legal_moves)
 
 class HardAI(AI):
-    def choice_getter(self, board: Board):
-        self.choice = self.best_move(board)
-    
-    def best_move(self,board : Board):
-        pass
+    def __init__(self,other : Player):
+        self.color = choice(Colors.color_og_list)
+        self.score = 0
+        self.other = other
+
+    def choice_getter(self,board: Board):
+        print(self.other.color)
+        self.choice = self.minimax(board,5,True)
 
     def minimax(self,board : Board,depth : int, maxPlayer : bool):
         if depth == 0 or bool(win_check(board)):
-            return pos_eval(board)
+            print('WIN OR LOSS FOUND\nNOT A REAL BOARD')
+            board.print_board()
+            print('NOT A REAL BOARD')
+            return pos_eval(self,board)
         
         best_move = None
         if maxPlayer:
             best_pos = -1000
             for move in board.legal_moves:
-                self.choice = move
-                child = deepcopy(board)
+                self.choice = move + 1
+                child = Board()
+                child.board_list = board.board_list[:]
                 board_change(self,child)
                 pos = self.minimax(child, depth - 1, False)
                 if pos > best_pos:
                     best_pos = pos
                     best_move = move
 
-            return best_pos, best_move
+            return best_move
 
         else:
             best_pos = 1000
-            other = Player() 
-            for spot in board.board_list:
-                #Finding opponents color
-                if isinstance(spot,str):
-                    start = spot.index('40m')
-                    if color := get_color(spot) != self.color:
-                        other.color = color
-                        break
 
             for move in board.legal_moves:
-                other.choice = move
-                child = deepcopy(board)
-                board_change(other,child)
+                self.other.choice = move + 1
+                child = Board()
+                child.board_list = board.board_list[:]
+                board_change(self.other,child)
                 pos = self.minimax(child, depth - 1, True)
                 if pos < best_pos:
                     best_pos = pos
                     best_move = move
 
-            return best_pos, best_move
+            return best_move
 
 #General functions
 def board_change(player : Player,board : Board) -> None:
@@ -301,14 +300,15 @@ def pos_eval(p : Player,board : Board):
     pos_diags = Get_Indexes.get_pos_diags()
     neg_diags = Get_Indexes.get_neg_diags()
 
+    count = 0
     chip = '\x1b[' + p.color + '40m\x1b[0m'
     for row in rows:
-        row = list(map(lambda a:board.board_list[a],row),row)
+        row = list(map(lambda a:board.board_list[a],row))
         if row.count(chip) == 3:
             return 99
         
         for foo in row:
-            if foo.startswith('\x1b[') and foo != chip:
+            if isinstance(foo,str) and foo != chip:
                 count += 1
 
         if count == 3:
@@ -338,9 +338,7 @@ def player_vs_ezai(board : Board):
 
 def player_vs_hardai(board : Board):
     p1 = Person('1')
-    p2 = HardAI()
-
-    p1.name_getter('1')
+    p2 = HardAI(p1)
     
     first = starterRequest()
     if first in [1,2]:

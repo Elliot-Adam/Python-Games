@@ -3,6 +3,7 @@
 #Imports
 from abc import abstractmethod
 from random import choice
+from copy import deepcopy
 
 #Classes
 
@@ -86,6 +87,10 @@ class Board:
         return [8 - ((i % 7) + 1) for i in [41,40,39,38,37,36,35] if isinstance(self.board_list[i],int)]
 
 class Player:
+    def __init__(self):
+        self.choice = None
+        self.color = None
+
     @abstractmethod
     def choice_getter(self,board : Board):
         ...
@@ -152,14 +157,51 @@ class HardAI(AI):
     def choice_getter(self, board: Board):
         self.choice = self.best_move(board)
     
-    def best_move(board : Board):
+    def best_move(self,board : Board):
         pass
+
+    def minimax(self,board : Board,depth : int, maxPlayer : bool):
+        if depth == 0 or bool(win_check(board)):
+            return pos_eval(board)
+        
+        best_move = None
+        if maxPlayer:
+            best_pos = -1000
+            for move in board.legal_moves:
+                self.choice = move
+                child = deepcopy(board)
+                board_change(self,child)
+                pos = self.minimax(child, depth - 1, False)
+                if pos > best_pos:
+                    best_pos = pos
+                    best_move = move
+
+            return best_pos, best_move
+
+        else:
+            best_pos = 1000
+            other = Player() 
+            for spot in board.board_list:
+                #Finding opponents color
+                if isinstance(spot,str):
+                    start = spot.index('40m')
+                    if color := get_color(spot) != self.color:
+                        other.color = color
+                        break
+
+            for move in board.legal_moves:
+                other.choice = move
+                child = deepcopy(board)
+                board_change(other,child)
+                pos = self.minimax(child, depth - 1, True)
+                if pos < best_pos:
+                    best_pos = pos
+                    best_move = move
+
+            return best_pos, best_move
 
 #General functions
 def board_change(player : Player,board : Board) -> None:
-    if player.__class__ == EasyAI:
-        print('good')
-        print('P CHOICE IN',player.choice)
     player.choice -= 1
     try:
         while True:
@@ -171,8 +213,12 @@ def board_change(player : Player,board : Board) -> None:
             board.board_list[player.choice] = f'\x1b[{player.color}40mO\x1b[0m'
             break
     except:
-        print('not good',player.choice)
         pass
+
+def get_color(s : str):
+    """Used to get the color unicode from the string"""
+    start = s.index('40m')
+    return s[start - 3:start]
 
 def colors(color) -> str:
     """Turns player choice into unicode for the Player object to turn the O into the specified color"""
@@ -241,6 +287,36 @@ def done_playing() -> bool:
             return ret
         
         print('Please choose one of the given options')
+
+def pos_eval(p : Player,board : Board):
+    """Evalutation of a position for hard AI"""
+    if wins := win_check(board):
+        i = board.board_list[wins[0][0]]
+        if get_color(i) == p.color: return 100
+        else: return -100
+
+    score = 0
+    rows = Get_Indexes.get_rows()
+    cols = Get_Indexes.get_cols()
+    pos_diags = Get_Indexes.get_pos_diags()
+    neg_diags = Get_Indexes.get_neg_diags()
+
+    chip = '\x1b[' + p.color + '40m\x1b[0m'
+    for row in rows:
+        row = list(map(lambda a:board.board_list[a],row),row)
+        if row.count(chip) == 3:
+            return 99
+        
+        for foo in row:
+            if foo.startswith('\x1b[') and foo != chip:
+                count += 1
+
+        if count == 3:
+            return -99
+     
+        count = 0
+
+    return score
 
 #Level and turn functions
 def player_vs_player(board : Board):

@@ -362,10 +362,15 @@ def turns(p1 : Player, p2 : Player, board : Board, first : int) -> None:
             if run:
                 run,winner = turn_checks(p1,board)
 
-    assert winner != None, 'Winner found but not put into winner var'
-    winner.score += 1
-    print(f'{winner.name} won the game')
-    print(f'Score\n{p1.name}: {p1.score}, {p2.name}: {p2.score}')
+    if isinstance(winner,Player):
+        winner.score += 1
+        print(f'{winner.name} won the game')
+        print(f'Score\n{p1.name}: {p1.score}, {p2.name}: {p2.score}')
+    else:
+        assert winner != None, 'Escaped loop with no winner'
+        print('Tie Game')
+        print(f'Score\n{p1.name}: {p1.score}, {p2.name}: {p2.score}')
+
     dp = done_playing()
     if dp:
         board1 = Board()
@@ -373,16 +378,13 @@ def turns(p1 : Player, p2 : Player, board : Board, first : int) -> None:
 
 def turn_checks(p : Player,board : Board):
     p.choice_getter(board)
-    if p.__class__ == EasyAI:
-        print('P CHOICE',p.choice)
     winner = None
     assert p.choice,f'Problem initializing player.choice in choice getter in the {p.__class__} class'
     board_change(p,board)
     wins = win_check(board)
     state = not bool(wins)
     #if true win has not been found
-    if not state:
-        print('win found')
+    if not state or len(board.legal_moves) == 0:
         for win in wins:
             for index in win:
                 start = board.board_list[index].index(';40m')
@@ -391,7 +393,10 @@ def turn_checks(p : Player,board : Board):
                 board.board_list[index] = ''.join(tempstr)
 
                 winner = p
-    
+
+        if not winner:
+            winner = 'Tie'
+            
     board.print_board()
     return state,winner
 

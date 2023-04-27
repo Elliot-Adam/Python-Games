@@ -125,20 +125,13 @@ def draw():
         
     
     else:
-        url = 'http://adam4.com/Elliot/SnakeHScore.txt'
-        webUrl = urllib.request.urlopen(url)
-        hscore = webUrl.read()
-
-        if score > hscore:
-            Vars.new = True
-            hscore = score
-        #with open('SnakeHScore.txt','r') as f:
-        #    hscore = f.readline()
-        #    if score > int(hscore):
-        #        Vars.new = True
-        #        hscore = score
-        #        with open('SnakeHScore.txt','w') as h:
-        #            h.write(str(score))
+        with open('SnakeHScore.txt','r') as f:
+            hscore = f.readline()
+            if score > int(hscore):
+                Vars.new = True
+                hscore = score
+                with open('SnakeHScore.txt','w') as h:
+                    h.write(str(score))
 
         nmes = ''
         if Vars.new:

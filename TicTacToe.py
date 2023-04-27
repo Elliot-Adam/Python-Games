@@ -178,8 +178,8 @@ class Board:
             return True
         return False
 
-    def __del__(self):
-        print('\nThanks for playing')
+    #def __del__(self):
+        #print('\nThanks for playing')
 
 class Player:
     def __init__(self,name,letter):
@@ -238,10 +238,8 @@ class HardAI(Player):
 
         if isMaximizing:
             best_score = -1000
-            moves = [move for move in self.temp_board if isinstance(move,int)]
-            print(moves)
+            moves = [move - 1 for move in self.temp_board if isinstance(move,int)]
             for move in moves:
-                print(move)
                 og = copy.copy(self.temp_board[move])
                 self.temp_board[move] = self.letter
                 score = self.minimax(depth - 1,False)
@@ -251,10 +249,8 @@ class HardAI(Player):
 
         else:
             worst_score = 1000
-            moves = [move for move in self.temp_board if isinstance(move,int)]
-            print(moves,'Not maximizing')
+            moves = [move - 1 for move in self.temp_board if isinstance(move,int)]
             for move in moves:
-                print(move)
                 og = copy.copy(self.temp_board[move])
                 self.temp_board[move] = self.letter
                 score = self.minimax(depth - 1,True)
@@ -327,16 +323,16 @@ class HardAI(Player):
             count += 1
         return cornerList
 
-    def optimalMove(self):
+    def optimalMove(self) -> int:
         self.temp_board = board.spotlist.copy()
         best_score = -1000
-        moves = [move for move in self.temp_board if isinstance(move,int)]
+        moves = [move - 1 for move in self.temp_board if isinstance(move,int)]
         for move in moves:
             og = copy.copy(self.temp_board[move])
             self.temp_board[move] = self.letter
-            score = self.minimax(20,False)
+            score = self.minimax(5,False)
             best_score = max(score,best_score)
-            if best_score != -1000:
+            if best_score == score:
                 best_move = move
             self.temp_board[move] = og
         return best_move
@@ -352,7 +348,6 @@ class HardAI(Player):
             print(tempspotlist)
             tempspotlist.remove('X')
         return tempspotlist
-
 
 #Functions
 def turns(firstP):
@@ -500,13 +495,13 @@ def playerVHardAI():
     
     player1 = Person(p1name,p1letter)
     player2 = HardAI(p2name,p2letter)
-    turns(pfirst)
-        
+    turns(pfirst)       
+
 #Main Game Code
+global board
+board = Board()
+board.setBoard()
 if __name__ == '__main__':
-    global board
-    board = Board()
-    board.setBoard()
     dif = intro()
     if dif == 1:
         playerVPlayer()

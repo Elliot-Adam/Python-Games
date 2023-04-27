@@ -1,16 +1,10 @@
 import pygame
 import random
 import math
-from urllib.request import urlopen
-from urllib.request import Request 
+import urllib.request
 import json
-import ssl
 
 pygame.init()
-
-ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
 
 class Vars:
     new = False
@@ -132,23 +126,12 @@ def draw():
     
     else:
         url = 'http://adam4.com/Elliot/SnakeHScore.txt'
-        raw_request = Request(url)
-        raw_request.add_header('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0) Gecko/20100101 Firefox/78.0')
-        raw_request.add_header('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8')
-        rq = urlopen(url)
-        data = rq.read()
+        webUrl = urllib.request.urlopen(url)
+        hscore = webUrl.read()
 
-        try:
-            js = json.loads(data)
-
-        except:
-            raise Exception('Data didn\'t load properly')
-
-        hscore = int(js['pre'])
         if score > hscore:
             Vars.new = True
             hscore = score
-            js['pre'] = score
         #with open('SnakeHScore.txt','r') as f:
         #    hscore = f.readline()
         #    if score > int(hscore):

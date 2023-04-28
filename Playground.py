@@ -7,7 +7,7 @@ import sqlite3
 """All of my tiny projects over my coding career"""
 def dec_to_frac():
     x = input("Input number ")
-    print (Fraction(x))
+    print(Fraction(x))
 
 def grade_calc():
 
@@ -673,8 +673,18 @@ def scrabble_helper():
     print ("\n", c, "possible words") 
     file1.close()                
      
-if __name__=="__main__":
+def d_formula():
+    x1,y1 = input('input coord of first node\n').split()
+    x2,y2 = input('input coord of second node\n').split()
+
+    x = (int(x1) - int(x2))**2
+    y = (int(y1) - int(y2))**2
+
+    d = math.sqrt(x + y)
+    print('DISTANCE IS' , d)
+
 #All projects
+if __name__=="__main__":
     #grade_calc()
     #food_calc()
     #Interest_Calc()
@@ -706,4 +716,5 @@ if __name__=="__main__":
     #sqltables()
     #ptheorum()
     #scrabble_helper()
+    d_formula()
     pass

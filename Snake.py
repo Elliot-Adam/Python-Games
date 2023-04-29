@@ -1,8 +1,6 @@
 import pygame
 import random
 import math
-import urllib.request
-import json
 
 pygame.init()
 
@@ -125,12 +123,12 @@ def draw():
         
     
     else:
-        with open('SnakeHScore.txt','r') as f:
+        with open('C:\Users\Elliot\SnakeStuff\SnakeHScore.txt','r') as f:
             hscore = f.readline()
             if score > int(hscore):
                 Vars.new = True
                 hscore = score
-                with open('SnakeHScore.txt','w') as h:
+                with open('C:\Users\Elliot\SnakeStuff\SnakeHScore.txt','w') as h:
                     h.write(str(score))
 
         nmes = ''
@@ -175,7 +173,7 @@ if __name__ == '__main__':
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
     name = 'Snake'
-    icon = pygame.image.load('Snake.png')
+    icon = pygame.image.load('C:\Users\Elliot\SnakeStuff\Snake.png')
 
     SCREEN = pygame.display.set_mode((SCREEN_LENGTH,SCREEN_HEIGHT))
     pygame.display.set_caption(name)

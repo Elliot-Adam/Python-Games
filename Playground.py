@@ -683,9 +683,10 @@ def d_formula():
     d = math.sqrt(x + y)
     print('DISTANCE IS' , d)
 
-def dictSwapper(empty : dict, taken : dict):
+def dictSwapper(og : dict):
     "Swaps a dictionary's values and keys into another dictionary"
-    for k,v in taken.values():
+    empty : dict = {}
+    for k,v in og.items():
         empty[v] = k
     return empty
     
@@ -723,5 +724,6 @@ if __name__=="__main__":
     #sqltables()
     #ptheorum()
     #scrabble_helper()
-    d_formula()
+    #d_formula()
+    #print(dictSwapper({'a' : 1 ,'b' : 2, 'c' : 3}))
     pass

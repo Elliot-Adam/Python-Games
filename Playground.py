@@ -683,6 +683,13 @@ def d_formula():
     d = math.sqrt(x + y)
     print('DISTANCE IS' , d)
 
+def dictSwapper(empty : dict, taken : dict):
+    "Swaps a dictionary's values and keys into another dictionary"
+    for k,v in taken.values():
+        empty[v] = k
+    return empty
+    
+
 #All projects
 if __name__=="__main__":
     #grade_calc()

@@ -1,7 +1,6 @@
 import pygame
 pygame.init()
 
-from time import sleep
 from abc import abstractmethod
 from abc import abstractproperty
 
@@ -135,8 +134,10 @@ class Pawn(Piece):
         left_attack_coord = coord + (1,color_dict[self.color])
         right_attack_coord = coord + (1,color_dict[self.color])
 
-        if left_attack_coord[1] != 0 and board.board_dict[left_attack_coord] != None and board.board_dict[left_attack_coord].color != self.color: legal_moves.append(left_attack_coord) 
-        if right_attack_coord[1] != 8 and board.board_dict[right_attack_coord] != None and board.board_dict[right_attack_coord].color != self.color: legal_moves.append(right_attack_coord)
+        if left_attack_coord:
+            if left_attack_coord[1] != 0 and board.board_dict[left_attack_coord] != None and board.board_dict[left_attack_coord].color != self.color: legal_moves.append(left_attack_coord)
+        if right_attack_coord: 
+            if right_attack_coord[1] != 8 and board.board_dict[right_attack_coord] != None and board.board_dict[right_attack_coord].color != self.color: legal_moves.append(right_attack_coord)
         return legal_moves
     
     def illegal_capture_rules(self,board : Board):
@@ -156,7 +157,7 @@ class Pawn(Piece):
         legal_moves = []
 
         try:
-            moved = piece_moved(board,last_board,self.color)
+            moved = Utility.piece_moved(board,last_board,self.color)
         except: return legal_moves
         
         if str(moved[0]) == 'PAWN':
@@ -288,11 +289,17 @@ class King(Piece):
     
     def rules(self,board:Board,last_board):
         legal_moves = []
-        legal_moves.extend(self.movement_rules())
-        legal_moves.extend(self.castling_rules(board))
+        legal_moves.extend(self.movement_rules(board,last_board))
+        if not self.in_check(board,last_board):
+            if not self.has_moved:
+                legal_moves.extend(self.castling_rules(board))
+        else:
+            #NOTE make in check rules for every class
+            pass
+
         return legal_moves
 
-    def movement_rules(self):
+    def movement_rules(self,board,last_board):
         legal_moves = []
         coord = Coord(self.coord)
 
@@ -309,6 +316,10 @@ class King(Piece):
                 legal_moves.append(coord3)
 
         legal_moves.remove(self.coord)
+        print(type(legal_moves))
+        #NOTE DOESNT WORK
+        legal_moves_set = set(legal_moves) - set(Utility.covered_squares(self.color,board,last_board))
+        legal_moves = list(legal_moves_set)
         return legal_moves
     
     def castling_rules(self,board:Board):
@@ -321,16 +332,28 @@ class King(Piece):
                 if isinstance(rook_spot,Rook) and rook_spot.color == self.color and not rook_spot.has_moved:
                     #Rook of same color is in one of the spots
                     if rook_coord < self.coord:
-                        if board.board_dict['b' + rook_coord[1]] is None and board.board_dict['c' + rook_coord[1]] is None and board.board_dict['d' + rook_coord[1]]:
+                        if board.board_dict['b' + rook_coord[1]] is None and board.board_dict['c' + rook_coord[1]] is None and board.board_dict['d' + rook_coord[1]] is None:
                             legal_moves.append('_c' + rook_coord[1])
                     else:
-                        if board.board_dict['f' + rook_coord[1]] is None and board.board_dict['g' + rook_coord[1]]:
+                        if board.board_dict['f' + rook_coord[1]] is None and board.board_dict['g' + rook_coord[1]] is None:
                             legal_moves.append('_g' + rook_coord[1]) 
+                        else:
+                            print('this')
                 else:
                     print('here')
 
-        print(legal_moves)
         return legal_moves
+
+    def in_check(self,board : Board,last_board : Board):
+        checking_pieces = []
+        for piece in board.board_dict.values():
+            if piece and piece.color != self.color:
+                #An opponents piece
+                if self.coord in piece.rules(board,last_board):
+                    #in check
+                    checking_pieces.append(piece)
+
+        return checking_pieces
 
 class Screen:
     SCREEN_HEIGHT = 500
@@ -373,151 +396,160 @@ class Screen:
         self.draw_bg()
         self.draw_pieces(board)
         self.draw_held(held)
-            
-def coord_clicked(x,y) -> tuple:
-    'Gets the location on the chess board of where you clicked'
-    #Letter
 
-    if x not in range(BoardImgSizes.TEXT_BUFFER, Screen.SCREEN_WIDTH - BoardImgSizes.BLANK_BUFFER):
-        return None
+class Utility:
+    def coord_clicked(x,y) -> tuple:
+        'Gets the location on the chess board of where you clicked'
+        #Letter
+
+        if x not in range(BoardImgSizes.TEXT_BUFFER, Screen.SCREEN_WIDTH - BoardImgSizes.BLANK_BUFFER):
+            return None
+        
+        letter = -(((BoardImgSizes.SQ_SIZE * 8) // Screen.SCREEN_WIDTH - (x - BoardImgSizes.TEXT_BUFFER)) // BoardImgSizes.SQ_SIZE)
+
+        if letter - 1 not in range(8):
+            return None
+
+        letter = Convert.num_to_letter[letter]
+
+        #Number
+
+        if y not in range(BoardImgSizes.BLANK_BUFFER, Screen.SCREEN_HEIGHT - BoardImgSizes.TEXT_BUFFER):
+            return None
+        
+        number = 9 + (((BoardImgSizes.SQ_SIZE * 8) // Screen.SCREEN_HEIGHT - (y - BoardImgSizes.BLANK_BUFFER)) // BoardImgSizes.SQ_SIZE)
+
+        if number - 1 not in range(8):
+            return None
+        
+        coord = letter + str(number)
+        return coord
+
+    def covered_squares(color : str,board : Board,last_board : Board) -> list:
+        covered = []
+        for piece in board.board_dict.values():
+            if piece and piece.color != color:
+                covered.append(piece.rules(board,last_board))
+        
+        return covered
     
-    letter = -(((BoardImgSizes.SQ_SIZE * 8) // Screen.SCREEN_WIDTH - (x - BoardImgSizes.TEXT_BUFFER)) // BoardImgSizes.SQ_SIZE)
+    def piece_moved(board : Board, last_board : Board,color : str) -> tuple[Piece,str]:
+        "Returns tuple where [0] is the piece that moved and [1] is where it moved from"
+        base_board = Board()
+        strbasedict = {}
+        strboarddict = {}
+        for k,v in base_board.board_dict.items():
+            strbasedict[k] = str(v) 
+        for k,v in board.board_dict.items():
+            strboarddict[k] = str(v) 
+        board_set = set(strboarddict.items())
+        base_set = set(strbasedict.items())
+        if len(board_set ^ base_set) / 2 != 1:
+            #Not first turn
+            board_set = set(board.board_dict.items())
+            last_set = set(last_board.board_dict.items())
+            moved = []
 
-    if letter - 1 not in range(8):
-        return None
+            changed_set = last_set ^ board_set
+            count = {}
+            for item in changed_set:count[item[1]] = count.get(item[1],0) + 1
+            piece : Piece = dict_search(count,2)[0]
 
-    letter = Convert.num_to_letter[letter]
+            coord_list = []
+            coord_list.extend(dict_search(last_board.board_dict,piece))
+            coord_list.extend(dict_search(board.board_dict,piece))
+            coord_list.remove(piece.coord)
+            from_coord = coord_list[0]
 
-    #Number
+            moved.append(piece)
+            moved.append(from_coord)
 
-    if y not in range(BoardImgSizes.BLANK_BUFFER, Screen.SCREEN_HEIGHT - BoardImgSizes.TEXT_BUFFER):
-        return None
-    
-    number = 9 + (((BoardImgSizes.SQ_SIZE * 8) // Screen.SCREEN_HEIGHT - (y - BoardImgSizes.BLANK_BUFFER)) // BoardImgSizes.SQ_SIZE)
+            assert moved, 'Didn\'t find moved piece'
+            assert isinstance(moved[0],Piece) and isinstance(moved[1],str), 'Didn\'t find moved piece' 
+            return tuple(moved)
+        else:
+            raise Exception('First Turn')
 
-    if number - 1 not in range(8):
-        return None
-    
-    coord = letter + str(number)
-    return coord
-
-def playerInp(board : Board,held : Piece,color : str,last_board : Board) -> Piece:
-    delay = False
-    if pygame.mouse.get_pressed()[0]:
-        coord = coord_clicked(pygame.mouse.get_pos()[0],pygame.mouse.get_pos()[1])
-        if coord:
-            piece = board.board_dict[coord]
-            if piece != None and piece.color == color and not held:
-                #Picking up a piece
-                held = piece
-                board.change_board(coord,None)
-                delay = True
-                return held,color,delay
-            
-            if held:
-                #Putting down a piece
-                if coord == held.coord:
-                    board.change_board(coord,held)
-                    held = None
+    def playerInp(board : Board,held : Piece,color : str,last_board : Board) -> Piece:
+        delay = False
+        if pygame.mouse.get_pressed()[0]:
+            coord = Utility.coord_clicked(pygame.mouse.get_pos()[0],pygame.mouse.get_pos()[1])
+            if coord:
+                piece = board.board_dict[coord]
+                if piece != None and piece.color == color and not held:
+                    #Picking up a piece
+                    held = piece
+                    board.change_board(coord,None)
                     delay = True
                     return held,color,delay
-                    
-                if rules := held.rules(board,last_board):
-                    if coord in rules:
-                        last_board.board_dict = board.board_dict.copy()
-                        last_board.board_dict[held.coord] = held
+                
+                if held:
+                    #Putting down a piece
+                    if coord == held.coord:
                         board.change_board(coord,held)
-                        held.coord = coord
-                        if str(held) in ['PAWN','KING','ROOK']:
-                            held.has_moved = True
                         held = None
                         delay = True
-                        color = Convert.color_change[color]
+                        return held,color,delay
+                        
+                    if rules := held.rules(board,last_board):
+                        if coord in rules:
+                            last_board.board_dict = board.board_dict.copy()
+                            last_board.board_dict[held.coord] = held
+                            board.change_board(coord,held)
+                            held.coord = coord
+                            if str(held) in ['PAWN','KING','ROOK']:
+                                held.has_moved = True
+                            held = None
+                            delay = True
+                            color = Convert.color_change[color]
 
-                    elif isinstance(held,Pawn) and ('_' + coord in held.rules(board,last_board)):
-                        #Is an en passant move
-                        color_dict = {'WHITE' : -1, 'BLACK' : 1}
-                        number = str(int(coord[1]) + color_dict[held.color])
-                        letter = coord[0]
-                        taken = letter + number
-                        board.change_board(taken,None)
-                        last_board.board_dict = board.board_dict.copy()
-                        last_board.board_dict[held.coord] = held
-                        board.change_board(coord,held)
-                        held.coord = coord
-                        held = None
-                        delay = True
-                        color = Convert.color_change[color]
+                        elif isinstance(held,Pawn) and ('_' + coord in held.rules(board,last_board)):
+                            #Is an en passant move
+                            color_dict = {'WHITE' : -1, 'BLACK' : 1}
+                            number = str(int(coord[1]) + color_dict[held.color])
+                            letter = coord[0]
+                            taken = letter + number
+                            board.change_board(taken,None)
+                            last_board.board_dict = board.board_dict.copy()
+                            last_board.board_dict[held.coord] = held
+                            board.change_board(coord,held)
+                            held.coord = coord
+                            held = None
+                            delay = True
+                            color = Convert.color_change[color]
 
-                    elif isinstance(held,King) and ('_' + coord in held.rules(board,last_board)):
-                        #Is a castling move
-                        #Moving the rook
-                        if coord > held.coord:
-                            rook : Rook = board.board_dict['h' + held.coord[1]]
-                            rook_spot = Coord(coord) + (-1,0)
+                        elif isinstance(held,King) and ('_' + coord in held.rules(board,last_board)):
+                            #Is a castling move
+                            #Moving the rook
+                            if coord > held.coord:
+                                rook : Rook = board.board_dict['h' + held.coord[1]]
+                                rook_spot = Coord(coord) + (-1,0)
 
-                        else:
-                            rook : Rook = board.board_dict['a' + held.coord[1]]
-                            rook_spot = Coord(coord) + (1,0)
+                            else:
+                                rook : Rook = board.board_dict['a' + held.coord[1]]
+                                rook_spot = Coord(coord) + (1,0)
 
-                        board.change_board(rook.coord,None)
-                        board.change_board(rook,rook_spot)
-                        rook.coord = rook_spot        
+                            board.change_board(rook.coord,None)
+                            board.change_board(rook_spot,rook)
+                            rook.coord = rook_spot        
 
-                        rook.has_moved = False
-                        held.has_moved = False
+                            rook.has_moved = False
+                            held.has_moved = False
 
-                        #Setting down the king 
+                            #Setting down the king 
 
-                        board.change_board(coord,held)
+                            board.change_board(coord,held)
 
-                        held = None
-                        delay = True
-                        color = Convert.color_change(color)
-        elif held:
-            #Puts back down the piece if you click outside of the board
-            board.change_board(held.coord,held)
-            held = None
-            delay = True
-    
-    return held,color,delay
-
-def piece_moved(board : Board, last_board : Board,color : str) -> tuple[Piece,str]:
-    "Returns tuple where [0] is the piece that moved and [1] is where it moved from"
-    base_board = Board()
-    strbasedict = {}
-    strboarddict = {}
-    for k,v in base_board.board_dict.items():
-        strbasedict[k] = str(v) 
-    for k,v in board.board_dict.items():
-        strboarddict[k] = str(v) 
-    board_set = set(strboarddict.items())
-    base_set = set(strbasedict.items())
-    if len(board_set ^ base_set) / 2 != 1:
-        #Not first turn
-        board_set = set(board.board_dict.items())
-        last_set = set(last_board.board_dict.items())
-        moved = []
-
-        changed_set = last_set ^ board_set
-        count = {}
-        for item in changed_set:count[item[1]] = count.get(item[1],0) + 1
-        piece : Piece = dict_search(count,2)[0]
-
-        coord_list = []
-        coord_list.extend(dict_search(last_board.board_dict,piece))
-        coord_list.extend(dict_search(board.board_dict,piece))
-        coord_list.remove(piece.coord)
-        from_coord = coord_list[0]
-
-        moved.append(piece)
-        moved.append(from_coord)
-
-        assert moved, 'Didn\'t find moved piece'
-        assert isinstance(moved[0],Piece) and isinstance(moved[1],str), 'Didn\'t find moved piece' 
-        return tuple(moved)
-    else:
-        raise Exception('First Turn')
+                            held = None
+                            delay = True
+                            color = Convert.color_change[color]
+            elif held:
+                #Puts back down the piece if you click outside of the board
+                board.change_board(held.coord,held)
+                held = None
+                delay = True
+        
+        return held,color,delay
 
 def run():
     game_board = Board()
@@ -534,7 +566,7 @@ def run():
         game_clock.tick(FPS)
         screen.screen_run(game_board,held)
         if not delay:
-            held , color , delay = playerInp(game_board, held,color, last_board)
+            held , color , delay = Utility.playerInp(game_board, held,color, last_board)
         else:
             if delay_count == 5:
                 delay = False

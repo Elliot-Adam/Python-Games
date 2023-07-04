@@ -4,7 +4,12 @@ import math
 from fractions import Fraction
 import sqlite3
 
-"""All of my tiny projects over my coding career"""
+"""All of my tiny projects over my coding career
+If on vscode press (Ctrl + K) and then (Ctrl + 1)  to fold the functions
+"""
+def test():
+    print('a1' < 'e1')
+
 def dec_to_frac():
     x = input("Input number ")
     print(Fraction(x))
@@ -690,9 +695,17 @@ def dictSwapper(og : dict):
         empty[v] = k
     return empty
     
+def dict_search(dictionary : dict, keyword) -> list:
+    "Gets list of keys from a keyword"
+    l : list = []
+    for k,v in dictionary.items():
+        if v is keyword:
+            l.append(k)
+    return l
 
 #All projects
 if __name__=="__main__":
+    test()
     #grade_calc()
     #food_calc()
     #Interest_Calc()
@@ -726,4 +739,5 @@ if __name__=="__main__":
     #scrabble_helper()
     #d_formula()
     #print(dictSwapper({'a' : 1 ,'b' : 2, 'c' : 3}))
+    #print(dict_search({'a':1,'b':2,'c':1},1))
     pass

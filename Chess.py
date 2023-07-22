@@ -57,6 +57,10 @@ class Piece:
     def rules(self,board, last_board):
         ...
 
+    @abstractmethod
+    def in_check_rules(self,board):
+        ...
+
     @abstractproperty
     def value(self):
         ...
@@ -172,6 +176,10 @@ class Pawn(Piece):
 
         return legal_moves
 
+    @property
+    def value(self):
+        return 1
+
 class Knight(Piece):
     def __init__(self, color: str, coord: str):
         super().__init__(color, coord)
@@ -209,6 +217,10 @@ class Knight(Piece):
 
         return legal_moves
 
+    @property
+    def value(self):
+        return 3
+
 class Bishop(Piece):
     def __init__(self, color: str, coord: str):
         super().__init__(color, coord)
@@ -235,6 +247,10 @@ class Bishop(Piece):
                     legal_moves.append(coord.coord)
 
         return legal_moves
+
+    @property
+    def value(self):
+        return 3
 
 class Rook(Piece):
     def __init__(self, color: str, coord: str):
@@ -265,6 +281,10 @@ class Rook(Piece):
 
         return legal_moves
 
+    @property
+    def value(self):
+        return 5
+
 class Queen(Piece):
     def __init__(self, color: str, coord: str):
         super().__init__(color, coord)
@@ -277,6 +297,10 @@ class Queen(Piece):
         legal_moves.extend(Bishop.rules(self,board,last_board))
         legal_moves.extend(Rook.rules(self,board,last_board))
         return legal_moves
+
+    @property
+    def value(self):
+        return 9
 
 class King(Piece):
     def __init__(self, color: str, coord: str):
@@ -299,7 +323,7 @@ class King(Piece):
 
         return legal_moves
 
-    def movement_rules(self,board,last_board):
+    def movement_rules(self,board : Board,last_board):
         legal_moves = []
         coord = Coord(self.coord)
 
@@ -316,10 +340,13 @@ class King(Piece):
                 legal_moves.append(coord3)
 
         legal_moves.remove(self.coord)
-        print(type(legal_moves))
-        #NOTE DOESNT WORK
-        legal_moves_set = set(legal_moves) - set(Utility.covered_squares(self.color,board,last_board))
-        legal_moves = list(legal_moves_set)
+        covered_set = set(Utility.covered_squares(self.color,board,last_board))
+        legal_moves_set = set(legal_moves)
+        #legal_moves = list(legal_moves_set)
+        for move in legal_moves:
+            if board.board_dict[move] and board.board_dict[move].color == self.color:
+                legal_moves.remove(move)
+
         return legal_moves
     
     def castling_rules(self,board:Board):
@@ -355,20 +382,27 @@ class King(Piece):
 
         return checking_pieces
 
+    @property
+    def value(self):
+        return 0
+
 class Screen:
-    SCREEN_HEIGHT = 500
-    SCREEN_WIDTH = 500
+    def __init__(self,height,width):
+        self.SCREEN_HEIGHT = height
+        self.SCREEN_WIDTH = width
+        self.start_up()
 
-    SCREEN = pygame.display.set_mode((SCREEN_HEIGHT,SCREEN_WIDTH))
+    def start_up(self):
+        self.SCREEN = pygame.display.set_mode(self.SCREEN_HEIGHT,self.SCREEN_WIDTH)
 
-    name = 'Chess'
-    file_root = 'C:/Users/Elliot/Specific Projects/Python-Games/Chess/'
+        name = 'Chess'
+        file_root = 'C:/Users/Elliot/Specific Projects/Python-Games/Chess/'
 
-    bg = pygame.image.load(file_root + 'BOARD_WHITE.png').convert_alpha()
-    icon = pygame.image.load(file_root + 'PIECE_WHITE_PAWN.png').convert_alpha()
+        self.bg = pygame.image.load(file_root + 'BOARD_WHITE.png').convert_alpha()
+        icon = pygame.image.load(file_root + 'PIECE_WHITE_PAWN.png').convert_alpha()
 
-    pygame.display.set_caption(name)
-    pygame.display.set_icon(icon)
+        pygame.display.set_caption(name)
+        pygame.display.set_icon(icon)
 
     def draw_bg(self) -> None:
         scaled_bg = pygame.transform.scale(self.bg,(self.SCREEN_WIDTH,self.SCREEN_HEIGHT))
@@ -425,13 +459,13 @@ class Utility:
         coord = letter + str(number)
         return coord
 
-    def covered_squares(color : str,board : Board,last_board : Board) -> list:
+    def covered_squares(color : str,board : Board,last_board : Board) -> tuple:
         covered = []
         for piece in board.board_dict.values():
             if piece and piece.color != color:
                 covered.append(piece.rules(board,last_board))
         
-        return covered
+        return tuple(covered)
     
     def piece_moved(board : Board, last_board : Board,color : str) -> tuple[Piece,str]:
         "Returns tuple where [0] is the piece that moved and [1] is where it moved from"
@@ -554,7 +588,7 @@ class Utility:
 def run():
     game_board = Board()
     last_board = Board()
-    screen = Screen()
+    screen = Screen(500,500)
     running = True
     game_clock = pygame.time.Clock()
     FPS = 30

@@ -8,7 +8,7 @@ import sqlite3
 If on vscode press (Ctrl + K) and then (Ctrl + 1)  to fold the functions
 """
 def test():
-    print('a1' < 'e1')
+    print(set(list([1,2,3])))
 
 def dec_to_frac():
     x = input("Input number ")

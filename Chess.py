@@ -1,6 +1,8 @@
 import pygame
 pygame.init()
 
+from screen import Screen
+
 from abc import abstractmethod
 from abc import abstractproperty
 
@@ -114,6 +116,7 @@ class Pawn(Piece):
             legal_moves.extend(capture)
         if en_passant := self.en_passant_rules(board,last_board):
             legal_moves.extend(en_passant)
+        print(legal_moves)
         return legal_moves
     
     def movement_rules(self,board : Board) -> list:
@@ -135,13 +138,13 @@ class Pawn(Piece):
         coord = Coord(self.coord)
         color_dict = {'WHITE': +1 , 'BLACK' : -1}
 
-        left_attack_coord = coord + (1,color_dict[self.color])
+        left_attack_coord = coord + (-1,color_dict[self.color])
         right_attack_coord = coord + (1,color_dict[self.color])
 
         if left_attack_coord:
             if left_attack_coord[1] != 0 and board.board_dict[left_attack_coord] != None and board.board_dict[left_attack_coord].color != self.color: legal_moves.append(left_attack_coord)
         if right_attack_coord: 
-            if right_attack_coord[1] != 8 and board.board_dict[right_attack_coord] != None and board.board_dict[right_attack_coord].color != self.color: legal_moves.append(right_attack_coord)
+            if right_attack_coord[1] != 9 and board.board_dict[right_attack_coord] != None and board.board_dict[right_attack_coord].color != self.color: legal_moves.append(right_attack_coord)
         return legal_moves
     
     def illegal_capture_rules(self,board : Board):
@@ -386,60 +389,15 @@ class King(Piece):
     def value(self):
         return 0
 
-class Screen:
-    def __init__(self,height,width):
-        self.SCREEN_HEIGHT = height
-        self.SCREEN_WIDTH = width
-        self.start_up()
-
-    def start_up(self):
-        self.SCREEN = pygame.display.set_mode(self.SCREEN_HEIGHT,self.SCREEN_WIDTH)
-
-        name = 'Chess'
-        file_root = 'C:/Users/Elliot/Specific Projects/Python-Games/Chess/'
-
-        self.bg = pygame.image.load(file_root + 'BOARD_WHITE.png').convert_alpha()
-        icon = pygame.image.load(file_root + 'PIECE_WHITE_PAWN.png').convert_alpha()
-
-        pygame.display.set_caption(name)
-        pygame.display.set_icon(icon)
-
-    def draw_bg(self) -> None:
-        scaled_bg = pygame.transform.scale(self.bg,(self.SCREEN_WIDTH,self.SCREEN_HEIGHT))
-        self.SCREEN.blit(scaled_bg,(0,0))
-        
-    def draw_pieces(self,board : Board) -> None:
-        for coord,piece in board.board_dict.items():
-            if piece != None:
-                x = BoardImgSizes.TEXT_BUFFER + ((Convert.letter_to_num[coord[0]] - 1) * BoardImgSizes.SQ_SIZE) + (Convert.letter_to_num[coord[0]])
-                y = BoardImgSizes.BLANK_BUFFER + ((8 - int(coord[1])) * BoardImgSizes.SQ_SIZE) + (8 - int(coord[1])) + 2.5
-                rect = pygame.Rect(x,y,BoardImgSizes.SQ_SIZE,BoardImgSizes.SQ_SIZE)
-                scaled = pygame.transform.scale(piece.image,(BoardImgSizes.SQ_SIZE - 5,BoardImgSizes.SQ_SIZE - 5))
-                self.SCREEN.blit(scaled,rect)
-
-    def draw_held(self,held : Piece):
-        if held != None:
-            x = pygame.mouse.get_pos()[0]
-            y = pygame.mouse.get_pos()[1]
-            
-            rect = pygame.Rect(x,y,BoardImgSizes.SQ_SIZE,BoardImgSizes.SQ_SIZE)
-            scaled = pygame.transform.scale(held.image,(BoardImgSizes.SQ_SIZE - 5,BoardImgSizes.SQ_SIZE - 5))
-            self.SCREEN.blit(scaled,rect)
-
-    def screen_run(self,board : Board , held : Piece) -> None:
-        self.draw_bg()
-        self.draw_pieces(board)
-        self.draw_held(held)
-
 class Utility:
-    def coord_clicked(x,y) -> tuple:
+    def coord_clicked(x,y,screen) -> tuple:
         'Gets the location on the chess board of where you clicked'
         #Letter
 
-        if x not in range(BoardImgSizes.TEXT_BUFFER, Screen.SCREEN_WIDTH - BoardImgSizes.BLANK_BUFFER):
+        if x not in range(BoardImgSizes.TEXT_BUFFER, screen.SCREEN_WIDTH - BoardImgSizes.BLANK_BUFFER):
             return None
         
-        letter = -(((BoardImgSizes.SQ_SIZE * 8) // Screen.SCREEN_WIDTH - (x - BoardImgSizes.TEXT_BUFFER)) // BoardImgSizes.SQ_SIZE)
+        letter = -(((BoardImgSizes.SQ_SIZE * 8) // screen.SCREEN_WIDTH - (x - BoardImgSizes.TEXT_BUFFER)) // BoardImgSizes.SQ_SIZE)
 
         if letter - 1 not in range(8):
             return None
@@ -448,10 +406,10 @@ class Utility:
 
         #Number
 
-        if y not in range(BoardImgSizes.BLANK_BUFFER, Screen.SCREEN_HEIGHT - BoardImgSizes.TEXT_BUFFER):
+        if y not in range(BoardImgSizes.BLANK_BUFFER, screen.SCREEN_HEIGHT - BoardImgSizes.TEXT_BUFFER):
             return None
         
-        number = 9 + (((BoardImgSizes.SQ_SIZE * 8) // Screen.SCREEN_HEIGHT - (y - BoardImgSizes.BLANK_BUFFER)) // BoardImgSizes.SQ_SIZE)
+        number = 9 + (((BoardImgSizes.SQ_SIZE * 8) // screen.SCREEN_HEIGHT - (y - BoardImgSizes.BLANK_BUFFER)) // BoardImgSizes.SQ_SIZE)
 
         if number - 1 not in range(8):
             return None
@@ -504,10 +462,10 @@ class Utility:
         else:
             raise Exception('First Turn')
 
-    def playerInp(board : Board,held : Piece,color : str,last_board : Board) -> Piece:
+    def playerInp(board : Board,held : Piece,color : str,last_board : Board,screen : Screen) -> Piece:
         delay = False
         if pygame.mouse.get_pressed()[0]:
-            coord = Utility.coord_clicked(pygame.mouse.get_pos()[0],pygame.mouse.get_pos()[1])
+            coord = Utility.coord_clicked(pygame.mouse.get_pos()[0],pygame.mouse.get_pos()[1],screen)
             if coord:
                 piece = board.board_dict[coord]
                 if piece != None and piece.color == color and not held:
@@ -584,11 +542,44 @@ class Utility:
                 delay = True
         
         return held,color,delay
+    
+    def screen_setup() -> Screen:
+        file_root = 'C:/Users/Elliot/Specific Projects/Python-Games/Chess/'
+        bg = file_root + 'BOARD_WHITE.png'
+        icon = file_root + 'PIECE_WHITE_PAWN.png'
+        screen = Screen(500,500,'Chess',icon,bg)
+        screen.__setattr__('draw_pieces',draw_pieces)
+        screen.__setattr__('draw_held',draw_held)
+        screen.__setattr__('screen_run',screen_run)
+        return screen
+
+def draw_pieces(self,board : Board) -> None:
+        for coord,piece in board.board_dict.items():
+            if piece != None:
+                x = BoardImgSizes.TEXT_BUFFER + ((Convert.letter_to_num[coord[0]] - 1) * BoardImgSizes.SQ_SIZE) + (Convert.letter_to_num[coord[0]])
+                y = BoardImgSizes.BLANK_BUFFER + ((8 - int(coord[1])) * BoardImgSizes.SQ_SIZE) + (8 - int(coord[1])) + 2.5
+                rect = pygame.Rect(x,y,BoardImgSizes.SQ_SIZE,BoardImgSizes.SQ_SIZE)
+                scaled = pygame.transform.scale(piece.image,(BoardImgSizes.SQ_SIZE - 5,BoardImgSizes.SQ_SIZE - 5))
+                self.SCREEN.blit(scaled,rect)
+
+def draw_held(self,held : Piece):
+    if held != None:
+        x = pygame.mouse.get_pos()[0]
+        y = pygame.mouse.get_pos()[1]
+        
+        rect = pygame.Rect(x,y,BoardImgSizes.SQ_SIZE,BoardImgSizes.SQ_SIZE)
+        scaled = pygame.transform.scale(held.image,(BoardImgSizes.SQ_SIZE - 5,BoardImgSizes.SQ_SIZE - 5))
+        self.SCREEN.blit(scaled,rect)
+
+def screen_run(self : Screen,board : Board , held : Piece) -> None:
+    self.draw_bg()
+    self.draw_pieces(self,board)
+    self.draw_held(self,held)
 
 def run():
     game_board = Board()
     last_board = Board()
-    screen = Screen(500,500)
+    screen = Utility.screen_setup()
     running = True
     game_clock = pygame.time.Clock()
     FPS = 30
@@ -598,9 +589,9 @@ def run():
     delay_count = 0
     while running:
         game_clock.tick(FPS)
-        screen.screen_run(game_board,held)
+        screen.screen_run(screen,game_board,held)
         if not delay:
-            held , color , delay = Utility.playerInp(game_board, held,color, last_board)
+            held , color , delay = Utility.playerInp(game_board, held,color, last_board,screen)
         else:
             if delay_count == 5:
                 delay = False

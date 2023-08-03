@@ -10,8 +10,9 @@ from Playground import dictSwapper
 from Playground import dict_search
 
 class Sounds:
-    file_start = 'C:/Users/Elliot/Specific Projects/Python-Games/Chess'
-    PIECE_TAKING = pygame.mixer.Sound(f'{file_start}/SOUND_PIECE_TAKING.m4a')
+    def sound_get() -> dict:
+        sounds = {}
+        sounds['PIECE_TAKING'] = pygame.mixer.Sound(f'{Utility.file_start}/SOUND_PIECE_TAKING.m4a')
 
 class Coord:
     def __init__(self,coord):
@@ -53,7 +54,7 @@ class Piece:
         self.coord = coord
         assert color in ('WHITE','BLACK'),'Initializing piece without proper color'
         self.color = color
-        self.image = pygame.image.load(f'C:/Users/Elliot/Specific Projects/Python-Games/Chess/PIECE_{color.upper()}_{self}.png')
+        self.image = pygame.image.load(f'{Utility.file_start}/PIECE_{color.upper()}_{self}.png')
 
     @abstractmethod
     def rules(self,board, last_board):
@@ -116,7 +117,7 @@ class Pawn(Piece):
             legal_moves.extend(capture)
         if en_passant := self.en_passant_rules(board,last_board):
             legal_moves.extend(en_passant)
-        print(legal_moves)
+
         return legal_moves
     
     def movement_rules(self,board : Board) -> list:
@@ -367,10 +368,6 @@ class King(Piece):
                     else:
                         if board.board_dict['f' + rook_coord[1]] is None and board.board_dict['g' + rook_coord[1]] is None:
                             legal_moves.append('_g' + rook_coord[1]) 
-                        else:
-                            print('this')
-                else:
-                    print('here')
 
         return legal_moves
 
@@ -544,7 +541,7 @@ class Utility:
         return held,color,delay
     
     def screen_setup() -> Screen:
-        file_root = 'C:/Users/Elliot/Specific Projects/Python-Games/Chess/'
+        file_root = './Chess/'
         bg = file_root + 'BOARD_WHITE.png'
         icon = file_root + 'PIECE_WHITE_PAWN.png'
         screen = Screen(500,500,'Chess',icon,bg)
@@ -552,6 +549,9 @@ class Utility:
         screen.__setattr__('draw_held',draw_held)
         screen.__setattr__('screen_run',screen_run)
         return screen
+    
+    file_start = './Chess'
+
 
 def draw_pieces(self,board : Board) -> None:
         for coord,piece in board.board_dict.items():
@@ -604,6 +604,7 @@ def run():
 
         pygame.display.update()
     pygame.quit()
+
 
 if __name__ == '__main__':
     run()

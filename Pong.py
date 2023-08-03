@@ -122,7 +122,7 @@ def gmode_getter():
     for text in message:
         messageprint.append(regFont.render(text,True,white))
     for line in range(len(messageprint)):
-        print(line)
+        #print(line)
         message_rect = messageprint[line].get_rect(center = (displayWidth/2,displayHeight/5 + 50*line))
         SCREEN.blit(messageprint[line],message_rect)
     pygame.display.flip()
@@ -134,7 +134,7 @@ def gmode_getter():
                 return 1
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_1 or event.key == pygame.K_2 or event.key == pygame.K_3 or event.key == pygame.K_4:
-                    print(event.key,pygame.K_1,pygame.K_2,pygame.K_3)
+                    #print(event.key,pygame.K_1,pygame.K_2,pygame.K_3)
                     timer_active = False
                 if event.key == pygame.K_1:
                     return 1

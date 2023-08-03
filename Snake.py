@@ -123,12 +123,12 @@ def draw():
         
     
     else:
-        with open(r'C:\Users\Elliot\SnakeStuff\SnakeHScore.txt') as f:
+        with open(r'.\SnakeStuff\SnakeHScore.txt') as f:
             hscore = f.readline()
             if score > int(hscore):
                 Vars.new = True
                 hscore = score
-                with open(r'C:\Users\Elliot\SnakeStuff\SnakeHScore.txt','w') as h:
+                with open(r'.\SnakeStuff\SnakeHScore.txt','w') as h:
                     h.write(str(score))
 
         nmes = ''
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
     name = 'Snake'
-    icon = pygame.image.load(r'C:\Users\Elliot\SnakeStuff\Snake.png')
+    icon = pygame.image.load(r'.\SnakeStuff\Snake.png')
 
     SCREEN = pygame.display.set_mode((SCREEN_LENGTH,SCREEN_HEIGHT))
     pygame.display.set_caption(name)

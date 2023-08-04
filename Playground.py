@@ -620,63 +620,7 @@ def ptheorum():
     a = input("Input a ")
     b = input("Input b ")
     c = math.sqrt(float(a)**2 + float(b)**2)
-    print("c is {}".format(c))
-
-def scrabble_helper():
-
-#Input however many letters and python will find every word in the set dictionary that contains those letters; WORKS WITH DUPLICATE LETTERS    
-
-    file1 = open('10Kenglish.txt', 'r')
-    text = file1.readlines()
-    inputI = input ("Enter Letters ")
-    try:
-        int(inputI)
-        quit()
-    except:
-        pass 
-    inputL = []
-    inputL.append(inputI)
-    rL = []
-    sL = inputL[0]
-    for letter in sL:
-        rL.append(letter)
-    rL.append("_")
-    count = 1 
-    c = 0
-    cc = 0
-    rsL = rL[:]
-    wlist = []
-    clist = []
-    swlist = [] 
-    
-    for line in text:
-        count += 1
-        line = (line.strip() + "_")
-        for x in line: 
-            
-            if x in rsL:
-            
-                if x == ("_"):
-                    wlist.append (line)
-                    clist.append (count)
-                rsL.remove(x)
-                continue  
-            else:
-                rsL = rL[:]
-                break
-            
-        rsL = rL[:]
-    for z in wlist:
-        swlist.append(z.strip("_"))
-    print ("\n")
-    for y in swlist:
-            print ("Line:" , clist[cc] ,"; Word:" , y)
-            cc += 1
-            c += 1
-            time.sleep (0.15)
-        
-    print ("\n", c, "possible words") 
-    file1.close()                
+    print("c is {}".format(c))         
      
 def d_formula():
     x1,y1 = input('input coord of first node\n').split()

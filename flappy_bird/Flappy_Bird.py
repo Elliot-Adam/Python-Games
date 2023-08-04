@@ -1,10 +1,12 @@
 import pygame
 import copy
 import random
+import os
 
 pygame.init()
 
 gravity = 1
+file_path = os.path.dirname(__file__) + '\\'
 
 class Bird:
     boost = -2
@@ -15,7 +17,7 @@ class Bird:
     flapping = False
     flappingTimer = 0
     flappingMax = 5
-    img = pygame.image.load('flappy_bird/bird.png')
+    img = pygame.image.load(file_path + 'bird.png')
 
     def __init__(self,x,y):
         self.x = x
@@ -86,7 +88,7 @@ def draw():
     drawBg()
 
     bird_img = Bird.img
-    pipe_img = pygame.image.load('flappy_bird/pipe.png')
+    pipe_img = pygame.image.load(file_path + 'pipe.png')
     scaled_bird = pygame.transform.scale(bird_img,(Bird.width,Bird.height))
     SCREEN.blit(scaled_bird,(bird.x,bird.y))
     for pillar in pillarList:
@@ -127,7 +129,7 @@ def draw():
             SCREEN.blit(scoreprint,score_rect)
 
 def drawBg():
-    bg = pygame.image.load('flappy_bird/bg.png')
+    bg = pygame.image.load(file_path + 'bg.png')
     scaled_bg = pygame.transform.scale(bg,(SCREEN_WIDTH,SCREEN_HEIGHT))
     SCREEN.blit(scaled_bg,(0,0))
 
@@ -205,7 +207,7 @@ if __name__ == '__main__':
     SCREEN_WIDTH = 300
     SCREEN = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
 
-    icon = pygame.image.load('flappy_bird/bird.png')
+    icon = pygame.image.load(file_path + 'bird.png')
     name = 'Flappy Bird'
 
     pygame.display.set_caption(name)

@@ -3,9 +3,12 @@
 import pygame
 import math
 import random
+import os
 pygame.init()
 
 #Classes
+file_start = os.path.dirname(__file__)
+
 class Ball:
     def __init__(self,x,y,vx,vy,radius):
         self.x = x
@@ -159,7 +162,7 @@ bscore = 0
 SCREEN = pygame.display.set_mode((displayWidth,displayHeight))
 black = (0,0,0)
 white = (255,255,255)
-gameIcon = pygame.image.load('Pong\\Pong_Image.png')
+gameIcon = pygame.image.load(file_start + '\\Pong_Image.png')
 pygame.display.set_caption("Pong")
 pygame.display.set_icon(gameIcon)
 mode = gmode_getter()

@@ -1,11 +1,13 @@
 import pygame
 import random
 import math
+import os
 
 pygame.init()
 
 class Vars:
     new = False
+    file_path = (os.path.dirname(__file__) + '/SnakeStuff').replace('\\','/')
 
 def start():
     global playerX,playerY,dir,score,alone,speed,playerWidth,playerHeight,game_over,tailList
@@ -123,12 +125,12 @@ def draw():
         
     
     else:
-        with open(r'.\\Full_Snake\SnakeStuff\SnakeHScore.txt') as f:
+        with open(Vars.file_path + '/SnakeHScore.txt') as f:
             hscore = f.readline()
             if score > int(hscore):
                 Vars.new = True
                 hscore = score
-                with open(r'.\\Full_Snake\SnakeStuff\SnakeHScore.txt','w') as h:
+                with open(Vars.file_path + '/SnakeHScore.txt','w') as h:
                     h.write(str(score))
 
         nmes = ''
@@ -173,7 +175,7 @@ if __name__ == '__main__':
     SCREEN_LENGTH = 500
     SCREEN_HEIGHT = 500
     name = 'Snake'
-    icon = pygame.image.load(r'.\\Full_Snake\SnakeStuff\Snake.png')
+    icon = pygame.image.load(Vars.file_path + '/Snake.png')
 
     SCREEN = pygame.display.set_mode((SCREEN_LENGTH,SCREEN_HEIGHT))
     pygame.display.set_caption(name)

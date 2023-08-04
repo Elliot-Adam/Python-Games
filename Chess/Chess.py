@@ -1,13 +1,24 @@
 import pygame
 pygame.init()
 
-from screen import Screen
+import sys
+
+og_path = sys.path[0]
+new_path = sys.path[0].removesuffix('\\Chess')
+ 
+sys.path[0] = new_path
 
 from abc import abstractmethod
 from abc import abstractproperty
 
 from Playground import dictSwapper
 from Playground import dict_search
+
+from screen import Screen
+
+sys.path[0] = og_path
+
+print(sys.path[0])
 
 class Sounds:
     def sound_get() -> dict:
@@ -541,7 +552,7 @@ class Utility:
         return held,color,delay
     
     def screen_setup() -> Screen:
-        file_root = './Chess/'
+        file_root = './Chess/Chess_Assets/'
         bg = file_root + 'BOARD_WHITE.png'
         icon = file_root + 'PIECE_WHITE_PAWN.png'
         screen = Screen(500,500,'Chess',icon,bg)
@@ -550,7 +561,7 @@ class Utility:
         screen.__setattr__('screen_run',screen_run)
         return screen
     
-    file_start = './Chess'
+    file_start = './Chess/Chess_Assets'
 
 
 def draw_pieces(self,board : Board) -> None:

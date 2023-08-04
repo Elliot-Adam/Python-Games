@@ -159,7 +159,7 @@ bscore = 0
 SCREEN = pygame.display.set_mode((displayWidth,displayHeight))
 black = (0,0,0)
 white = (255,255,255)
-gameIcon = pygame.image.load('Pong_Image.png')
+gameIcon = pygame.image.load('Pong\\Pong_Image.png')
 pygame.display.set_caption("Pong")
 pygame.display.set_icon(gameIcon)
 mode = gmode_getter()

@@ -1,6 +1,12 @@
 import pygame
 pygame.init()
 import os
+import sys
+
+og_path = sys.path[0]
+outside_path = '\\'.join((sys.path[0].split('\\'))[:-1])
+
+sys.path[0] = outside_path
 
 from abc import abstractmethod
 from abc import abstractproperty
@@ -9,6 +15,8 @@ from Playground import dictSwapper
 from Playground import dict_search
 
 from screen import Screen
+
+sys.path[0] = og_path
 
 class Sounds:
     def sound_get() -> dict:
@@ -551,7 +559,6 @@ class Utility:
         return screen
     
     file_start = (os.path.dirname(__file__) + '/Chess_Assets/').replace('\\','/')
-    print(file_start)
 
 def draw_pieces(self,board : Board) -> None:
         for coord,piece in board.board_dict.items():

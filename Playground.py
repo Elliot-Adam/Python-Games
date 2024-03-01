@@ -1,6 +1,7 @@
 import time 
 import hashlib 
-import math 
+import math
+import random 
 from fractions import Fraction
 import sqlite3
 
@@ -8,7 +9,7 @@ import sqlite3
 If on vscode press (Ctrl + K) and then (Ctrl + 1)  to fold the functions
 """
 def test():
-    print(set(list([1,2,3])))
+    pass
 
 def dec_to_frac():
     x = input("Input number ")

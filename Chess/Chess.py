@@ -1,22 +1,12 @@
 import pygame
 pygame.init()
-import os
-import sys
-
-og_path = sys.path[0]
-outside_path = '\\'.join((sys.path[0].split('\\'))[:-1])
-
-sys.path[0] = outside_path
 
 from abc import abstractmethod
 from abc import abstractproperty
 
-from Playground import dictSwapper
-from Playground import dict_search
+import os
 
 from screen import Screen
-
-sys.path[0] = og_path
 
 class Sounds:
     def sound_get() -> dict:
@@ -30,8 +20,8 @@ class Coord:
     @staticmethod
     def legal_coords():
         legal = []
-        for letter in Convert.letter_to_num.keys():
-            for number in Convert.letter_to_num.values():
+        for letter in Utility.letter_to_num.keys():
+            for number in Utility.letter_to_num.values():
                 coord = letter + str(number)
                 legal.append(coord)
 
@@ -39,24 +29,14 @@ class Coord:
     
     def __add__(self,other : tuple) -> str:
         #Letter
-        letter = Convert.letter_to_num[self.coord[0]] + other[0]
+        letter = Utility.letter_to_num[self.coord[0]] + other[0]
         #Number
         number = int(self.coord[1]) + other[1]
         if letter - 1 not in range(8) or number - 1 not in range(8):
             return None
-        coord = Convert.num_to_letter[letter] + str(number)
+        coord = Utility.num_to_letter[letter] + str(number)
         assert isinstance(coord,str)
         return coord
-        
-class Convert:
-    letter_to_num = {'a' : 1, 'b' : 2, 'c' : 3, 'd' : 4, 'e' : 5, 'f' : 6, 'g' : 7, 'h' : 8}
-    num_to_letter = dictSwapper(letter_to_num)
-    color_change = {'WHITE' : 'BLACK', 'BLACK' : 'WHITE'}
-
-class BoardImgSizes:
-    SQ_SIZE = 54
-    TEXT_BUFFER = 39
-    BLANK_BUFFER = 23
 
 class Piece:
     def __init__(self,color : str,coord : str):
@@ -65,8 +45,36 @@ class Piece:
         self.color = color
         self.image = pygame.image.load(f'{Utility.file_start}/PIECE_{color.upper()}_{self}.png')
 
+    def block_check(self,board, last_board,checking_pieces : list) -> list:
+        """Returns list to block the check"""
+        assert str(self) != 'KING', "Shouldn't call block_check from king"
+        if not checking_pieces: return []
+        king : King = None
+        for piece in board.board_dict.values():
+            if piece and str(piece) == 'KING':
+                if piece.color == self.color:
+                    #piece = your own king
+                    king = piece
+                    break
+        
+        assert king, "Couldn't find your king on board"
+        if len(checking_pieces) > 1: return [] #Impossible to block double check
+        if str(checking_pieces[0]) == 'KNIGHT': return [] #Impossible to block knight check
+
+        legal_moves = []
+
+        piece : Piece = checking_pieces[0]
+        in_common = set(tuple(piece.rules(board,last_board))) & set(tuple(piece.__class__.rules(piece.__class__(king.color,king.coord),board,last_board)))
+        #Makes a set of the moves of the checking piece and grabs everything in common with if the king had the checking pieces rules which should grab all the spaces between them
+
+        for move in list(in_common):
+            if move in self.rules(board,last_board):
+                legal_moves.append(move)
+
+        return legal_moves
+
     @abstractmethod
-    def rules(self,board, last_board):
+    def rules(self,board, last_board) -> list:
         ...
 
     @abstractmethod
@@ -95,7 +103,7 @@ class Board:
         self.board_dict[coord] = piece
 
     def set_pawns(self) -> None:
-        for letter in Convert.letter_to_num.keys():
+        for letter in Utility.letter_to_num.keys():
             for num,color in {'2':'WHITE','7':'BLACK'}.items():
                 coord = letter + num
                 self.board_dict[coord] = Pawn(color,coord)
@@ -103,7 +111,7 @@ class Board:
     def set_pieces(self) -> None:
         let_to_piece : dict[str,Piece] = {'a' : Rook, 'b' : Knight, 'c' : Bishop, 'd' : Queen, 
                                'e' : King, 'f' : Bishop, 'g' : Knight, 'h' : Rook}
-        for letter in Convert.letter_to_num.keys():
+        for letter in Utility.letter_to_num.keys():
             for num,color in {'1':'WHITE','8':'BLACK'}.items():
                 coord = letter + num
                 self.board_dict[coord] = let_to_piece[letter](color,coord)
@@ -327,9 +335,10 @@ class King(Piece):
     def rules(self,board:Board,last_board):
         legal_moves = []
         legal_moves.extend(self.movement_rules(board,last_board))
-        if not self.in_check(board,last_board):
+        checking_pieces = self.in_check(board,last_board)
+        if not checking_pieces:
             if not self.has_moved:
-                legal_moves.extend(self.castling_rules(board))
+                legal_moves.extend(self.castling_rules(board,last_board))
         else:
             #NOTE make in check rules for every class
             pass
@@ -353,19 +362,20 @@ class King(Piece):
                 legal_moves.append(coord3)
 
         legal_moves.remove(self.coord)
-        covered_set = set(Utility.covered_squares(self.color,board,last_board))
-        legal_moves_set = set(legal_moves)
-        #legal_moves = list(legal_moves_set)
+        covered = Utility.covered_squares(self.color,board,last_board)
         for move in legal_moves:
-            if board.board_dict[move] and board.board_dict[move].color == self.color:
+            if (board.board_dict[move] and board.board_dict[move].color == self.color) or (move in covered):
                 legal_moves.remove(move)
 
         return legal_moves
     
-    def castling_rules(self,board:Board):
+    def castling_rules(self,board:Board,last_board : Board):
         legal_moves = []
         if self.has_moved:
             return []
+        if self.in_check(board,last_board):
+            return []
+
         king_dict = {'WHITE':('a1','h1'),'BLACK':('a8','h8')}
         for rook_coord in king_dict[self.color]:
             if rook_spot := board.board_dict[rook_coord]:
@@ -400,22 +410,22 @@ class Utility:
         'Gets the location on the chess board of where you clicked'
         #Letter
 
-        if x not in range(BoardImgSizes.TEXT_BUFFER, screen.SCREEN_WIDTH - BoardImgSizes.BLANK_BUFFER):
+        if x not in range(Utility.TEXT_BUFFER, screen.SCREEN_WIDTH - Utility.BLANK_BUFFER):
             return None
         
-        letter = -(((BoardImgSizes.SQ_SIZE * 8) // screen.SCREEN_WIDTH - (x - BoardImgSizes.TEXT_BUFFER)) // BoardImgSizes.SQ_SIZE)
+        letter = -(((Utility.SQ_SIZE * 8) // screen.SCREEN_WIDTH - (x - Utility.TEXT_BUFFER)) // Utility.SQ_SIZE)
 
         if letter - 1 not in range(8):
             return None
 
-        letter = Convert.num_to_letter[letter]
+        letter = Utility.num_to_letter[letter]
 
         #Number
 
-        if y not in range(BoardImgSizes.BLANK_BUFFER, screen.SCREEN_HEIGHT - BoardImgSizes.TEXT_BUFFER):
+        if y not in range(Utility.BLANK_BUFFER, screen.SCREEN_HEIGHT - Utility.TEXT_BUFFER):
             return None
         
-        number = 9 + (((BoardImgSizes.SQ_SIZE * 8) // screen.SCREEN_HEIGHT - (y - BoardImgSizes.BLANK_BUFFER)) // BoardImgSizes.SQ_SIZE)
+        number = 9 + (((Utility.SQ_SIZE * 8) // screen.SCREEN_HEIGHT - (y - Utility.BLANK_BUFFER)) // Utility.SQ_SIZE)
 
         if number - 1 not in range(8):
             return None
@@ -424,6 +434,7 @@ class Utility:
         return coord
 
     def covered_squares(color : str,board : Board,last_board : Board) -> tuple:
+        """Returns all covered squares that are covered by pieces of the opposite color"""
         covered = []
         for piece in board.board_dict.values():
             if piece and piece.color != color:
@@ -451,11 +462,11 @@ class Utility:
             changed_set = last_set ^ board_set
             count = {}
             for item in changed_set:count[item[1]] = count.get(item[1],0) + 1
-            piece : Piece = dict_search(count,2)[0]
+            piece : Piece = Utility.dict_search(count,2)[0]
 
             coord_list = []
-            coord_list.extend(dict_search(last_board.board_dict,piece))
-            coord_list.extend(dict_search(board.board_dict,piece))
+            coord_list.extend(Utility.dict_search(last_board.board_dict,piece))
+            coord_list.extend(Utility.dict_search(board.board_dict,piece))
             coord_list.remove(piece.coord)
             from_coord = coord_list[0]
 
@@ -491,15 +502,17 @@ class Utility:
                         
                     if rules := held.rules(board,last_board):
                         if coord in rules:
+                            #If clicked on a legal move
                             last_board.board_dict = board.board_dict.copy()
                             last_board.board_dict[held.coord] = held
+                            assert str(board.board_dict[coord]) != 'KING', "Shouldn't be able to take king"
                             board.change_board(coord,held)
                             held.coord = coord
                             if str(held) in ['PAWN','KING','ROOK']:
                                 held.has_moved = True
                             held = None
                             delay = True
-                            color = Convert.color_change[color]
+                            color = Utility.color_change[color]
 
                         elif isinstance(held,Pawn) and ('_' + coord in held.rules(board,last_board)):
                             #Is an en passant move
@@ -514,7 +527,7 @@ class Utility:
                             held.coord = coord
                             held = None
                             delay = True
-                            color = Convert.color_change[color]
+                            color = Utility.color_change[color]
 
                         elif isinstance(held,King) and ('_' + coord in held.rules(board,last_board)):
                             #Is a castling move
@@ -540,7 +553,13 @@ class Utility:
 
                             held = None
                             delay = True
-                            color = Convert.color_change[color]
+                            color = Utility.color_change[color]
+
+                        else:
+                            #Clicked on a non legal move
+                            board.change_board(held.coord,held)
+                            held = None
+                            delay = True
             elif held:
                 #Puts back down the piece if you click outside of the board
                 board.change_board(held.coord,held)
@@ -556,17 +575,41 @@ class Utility:
         screen.__setattr__('draw_pieces',draw_pieces)
         screen.__setattr__('draw_held',draw_held)
         screen.__setattr__('screen_run',screen_run)
+        screen.__setattr__('draw_possible',draw_possible)
         return screen
     
+    def dictSwapper(og : dict):
+        "Swaps a dictionary's values and keys into another dictionary"
+        empty : dict = {}
+        for k,v in og.items():
+            empty[v] = k
+        return empty
+    
+    def dict_search(dictionary : dict, keyword) -> list:
+        "Gets list of keys from a keyword"
+        l : list = []
+        for k,v in dictionary.items():
+            if v is keyword:
+                l.append(k)
+        return l
+    
+    letter_to_num = {'a' : 1, 'b' : 2, 'c' : 3, 'd' : 4, 'e' : 5, 'f' : 6, 'g' : 7, 'h' : 8}
+    num_to_letter = dictSwapper(letter_to_num)
+    color_change = {'WHITE' : 'BLACK', 'BLACK' : 'WHITE'}
+
+    SQ_SIZE = 54
+    TEXT_BUFFER = 39
+    BLANK_BUFFER = 23
+
     file_start = (os.path.dirname(__file__) + '/Chess_Assets/').replace('\\','/')
 
 def draw_pieces(self,board : Board) -> None:
         for coord,piece in board.board_dict.items():
             if piece != None:
-                x = BoardImgSizes.TEXT_BUFFER + ((Convert.letter_to_num[coord[0]] - 1) * BoardImgSizes.SQ_SIZE) + (Convert.letter_to_num[coord[0]])
-                y = BoardImgSizes.BLANK_BUFFER + ((8 - int(coord[1])) * BoardImgSizes.SQ_SIZE) + (8 - int(coord[1])) + 2.5
-                rect = pygame.Rect(x,y,BoardImgSizes.SQ_SIZE,BoardImgSizes.SQ_SIZE)
-                scaled = pygame.transform.scale(piece.image,(BoardImgSizes.SQ_SIZE - 5,BoardImgSizes.SQ_SIZE - 5))
+                x = Utility.TEXT_BUFFER + ((Utility.letter_to_num[coord[0]] - 1) * Utility.SQ_SIZE) + (Utility.letter_to_num[coord[0]])
+                y = Utility.BLANK_BUFFER + ((8 - int(coord[1])) * Utility.SQ_SIZE) + (8 - int(coord[1])) + 2.5
+                rect = pygame.Rect(x,y,Utility.SQ_SIZE,Utility.SQ_SIZE)
+                scaled = pygame.transform.scale(piece.image,(Utility.SQ_SIZE - 5,Utility.SQ_SIZE - 5))
                 self.SCREEN.blit(scaled,rect)
 
 def draw_held(self,held : Piece):
@@ -574,12 +617,30 @@ def draw_held(self,held : Piece):
         x = pygame.mouse.get_pos()[0]
         y = pygame.mouse.get_pos()[1]
         
-        rect = pygame.Rect(x,y,BoardImgSizes.SQ_SIZE,BoardImgSizes.SQ_SIZE)
-        scaled = pygame.transform.scale(held.image,(BoardImgSizes.SQ_SIZE - 5,BoardImgSizes.SQ_SIZE - 5))
+        buffer = -20
+
+        rect = pygame.Rect(x + buffer,y + buffer,Utility.SQ_SIZE,Utility.SQ_SIZE)
+        scaled = pygame.transform.scale(held.image,(Utility.SQ_SIZE - 5,Utility.SQ_SIZE - 5))
         self.SCREEN.blit(scaled,rect)
 
-def screen_run(self : Screen,board : Board , held : Piece) -> None:
+def draw_possible(self,held : Piece,board : Board,lastBoard : Board):
+    if not held: return
+    for move in held.rules(board,lastBoard):
+        x = (Utility.letter_to_num[move[0]] - 1) * Utility.SQ_SIZE + Utility.TEXT_BUFFER
+        y = (8 - int(move[1])) * Utility.SQ_SIZE + Utility.BLANK_BUFFER
+
+        if board.board_dict[move] is None:
+            img = pygame.image.load('Chess_Assets/DOT_SMALL.png')
+        else:
+            img = pygame.image.load('Chess_Assets/DOT_BIG.png')
+
+        rect = pygame.Rect(x + 5,y + 5,Utility.SQ_SIZE,Utility.SQ_SIZE)
+        scaled = pygame.transform.scale(img,(Utility.SQ_SIZE - 5,Utility.SQ_SIZE - 5))
+        self.SCREEN.blit(scaled,rect)
+
+def screen_run(self : Screen,board : Board , held : Piece, lastBoard : Board) -> None:
     self.draw_bg()
+    self.draw_possible(self,held,board,lastBoard)
     self.draw_pieces(self,board)
     self.draw_held(self,held)
 
@@ -596,7 +657,7 @@ def run():
     delay_count = 0
     while running:
         game_clock.tick(FPS)
-        screen.screen_run(screen,game_board,held)
+        screen.screen_run(screen,game_board,held,last_board)
         if not delay:
             held , color , delay = Utility.playerInp(game_board, held,color, last_board,screen)
         else:
@@ -611,7 +672,6 @@ def run():
 
         pygame.display.update()
     pygame.quit()
-
 
 if __name__ == '__main__':
     run()

@@ -47,16 +47,11 @@ class Piece:
 
     def block_check(self,board, last_board,checking_pieces : list) -> list:
         """Returns list to block the check"""
+        board : Board = board
+        last_board : Board = last_board
         assert str(self) != 'KING', "Shouldn't call block_check from king"
         if not checking_pieces: return []
-        king : King = None
-        for piece in board.board_dict.values():
-            if piece and str(piece) == 'KING':
-                if piece.color == self.color:
-                    #piece = your own king
-                    king = piece
-                    break
-        
+        king : King = Utility.find_king(board,self.color)
         assert king, "Couldn't find your king on board"
         if len(checking_pieces) > 1: return [] #Impossible to block double check
         if str(checking_pieces[0]) == 'KNIGHT': return [] #Impossible to block knight check
@@ -69,16 +64,16 @@ class Piece:
 
         for move in list(in_common):
             if move in self.rules(board,last_board):
+                next_board = board.board_dict.copy()
+                next_board[move] = self
+                next_board[self.coord] = None
+                if next_board[king.coord].in_check(board,last_board): continue
                 legal_moves.append(move)
 
         return legal_moves
-
+    
     @abstractmethod
     def rules(self,board, last_board) -> list:
-        ...
-
-    @abstractmethod
-    def in_check_rules(self,board):
         ...
 
     @abstractproperty
@@ -135,6 +130,15 @@ class Pawn(Piece):
         if en_passant := self.en_passant_rules(board,last_board):
             legal_moves.extend(en_passant)
 
+        king : King = Utility.find_king(board,self.color)
+
+        """for move in legal_moves:
+            next_board = board.board_dict.copy()
+            next_board[move] = self
+            next_board[self.coord] = None
+            if next_board[king.coord].in_check(board,last_board): continue
+            legal_moves.append(move)"""
+
         return legal_moves
     
     def movement_rules(self,board : Board) -> list:
@@ -180,9 +184,8 @@ class Pawn(Piece):
 
     def en_passant_rules(self,board : Board,last_board : Board) -> list:
         legal_moves = []
-
         try:
-            moved = Utility.piece_moved(board,last_board,self.color)
+            moved = Utility.piece_moved(board,last_board)
         except: return legal_moves
         
         if str(moved[0]) == 'PAWN':
@@ -335,14 +338,8 @@ class King(Piece):
     def rules(self,board:Board,last_board):
         legal_moves = []
         legal_moves.extend(self.movement_rules(board,last_board))
-        checking_pieces = self.in_check(board,last_board)
-        if not checking_pieces:
-            if not self.has_moved:
-                legal_moves.extend(self.castling_rules(board,last_board))
-        else:
-            #NOTE make in check rules for every class
-            pass
-
+        if not self.has_moved:
+            legal_moves.extend(self.castling_rules(board,last_board))
         return legal_moves
 
     def movement_rules(self,board : Board,last_board):
@@ -362,10 +359,10 @@ class King(Piece):
                 legal_moves.append(coord3)
 
         legal_moves.remove(self.coord)
-        covered = Utility.covered_squares(self.color,board,last_board)
+        """covered = Utility.covered_squares(self.color,board,last_board)
         for move in legal_moves:
             if (board.board_dict[move] and board.board_dict[move].color == self.color) or (move in covered):
-                legal_moves.remove(move)
+                legal_moves.remove(move)"""
 
         return legal_moves
     
@@ -373,8 +370,8 @@ class King(Piece):
         legal_moves = []
         if self.has_moved:
             return []
-        if self.in_check(board,last_board):
-            return []
+        #if self.in_check(board,last_board):
+        #    return []
 
         king_dict = {'WHITE':('a1','h1'),'BLACK':('a8','h8')}
         for rook_coord in king_dict[self.color]:
@@ -442,7 +439,7 @@ class Utility:
         
         return tuple(covered)
     
-    def piece_moved(board : Board, last_board : Board,color : str) -> tuple[Piece,str]:
+    def piece_moved(board : Board, last_board : Board) -> tuple[Piece,str]:
         "Returns tuple where [0] is the piece that moved and [1] is where it moved from"
         base_board = Board()
         strbasedict = {}
@@ -453,7 +450,7 @@ class Utility:
             strboarddict[k] = str(v) 
         board_set = set(strboarddict.items())
         base_set = set(strbasedict.items())
-        if len(board_set ^ base_set) / 2 != 1:
+        if not len(board_set ^ base_set) / 2 <= 1:
             #Not first turn
             board_set = set(board.board_dict.items())
             last_set = set(last_board.board_dict.items())
@@ -472,7 +469,6 @@ class Utility:
 
             moved.append(piece)
             moved.append(from_coord)
-
             assert moved, 'Didn\'t find moved piece'
             assert isinstance(moved[0],Piece) and isinstance(moved[1],str), 'Didn\'t find moved piece' 
             return tuple(moved)
@@ -488,7 +484,6 @@ class Utility:
                 if piece != None and piece.color == color and not held:
                     #Picking up a piece
                     held = piece
-                    board.change_board(coord,None)
                     delay = True
                     return held,color,delay
                 
@@ -506,6 +501,7 @@ class Utility:
                             last_board.board_dict = board.board_dict.copy()
                             last_board.board_dict[held.coord] = held
                             assert str(board.board_dict[coord]) != 'KING', "Shouldn't be able to take king"
+                            board.change_board(held.coord,None)
                             board.change_board(coord,held)
                             held.coord = coord
                             if str(held) in ['PAWN','KING','ROOK']:
@@ -523,6 +519,7 @@ class Utility:
                             board.change_board(taken,None)
                             last_board.board_dict = board.board_dict.copy()
                             last_board.board_dict[held.coord] = held
+                            board.change_board(held.coord,None)
                             board.change_board(coord,held)
                             held.coord = coord
                             held = None
@@ -549,6 +546,7 @@ class Utility:
 
                             #Setting down the king 
 
+                            board.change_board(held.coord,None)
                             board.change_board(coord,held)
 
                             held = None
@@ -593,6 +591,17 @@ class Utility:
                 l.append(k)
         return l
     
+    def find_king(board : Board, color: str) -> King:
+        king : King = None
+        for piece in board.board_dict.values():
+            if piece and str(piece) == 'KING':
+                if piece.color == color:
+                    #piece = your own king
+                    king = piece
+                    break
+        
+        return king
+
     letter_to_num = {'a' : 1, 'b' : 2, 'c' : 3, 'd' : 4, 'e' : 5, 'f' : 6, 'g' : 7, 'h' : 8}
     num_to_letter = dictSwapper(letter_to_num)
     color_change = {'WHITE' : 'BLACK', 'BLACK' : 'WHITE'}
@@ -603,9 +612,9 @@ class Utility:
 
     file_start = (os.path.dirname(__file__) + '/Chess_Assets/').replace('\\','/')
 
-def draw_pieces(self,board : Board) -> None:
+def draw_pieces(self,board : Board,held) -> None:
         for coord,piece in board.board_dict.items():
-            if piece != None:
+            if piece != None and piece != held:
                 x = Utility.TEXT_BUFFER + ((Utility.letter_to_num[coord[0]] - 1) * Utility.SQ_SIZE) + (Utility.letter_to_num[coord[0]])
                 y = Utility.BLANK_BUFFER + ((8 - int(coord[1])) * Utility.SQ_SIZE) + (8 - int(coord[1])) + 2.5
                 rect = pygame.Rect(x,y,Utility.SQ_SIZE,Utility.SQ_SIZE)
@@ -626,6 +635,7 @@ def draw_held(self,held : Piece):
 def draw_possible(self,held : Piece,board : Board,lastBoard : Board):
     if not held: return
     for move in held.rules(board,lastBoard):
+        if '_' in move: move = move[1:]
         x = (Utility.letter_to_num[move[0]] - 1) * Utility.SQ_SIZE + Utility.TEXT_BUFFER
         y = (8 - int(move[1])) * Utility.SQ_SIZE + Utility.BLANK_BUFFER
 
@@ -641,7 +651,7 @@ def draw_possible(self,held : Piece,board : Board,lastBoard : Board):
 def screen_run(self : Screen,board : Board , held : Piece, lastBoard : Board) -> None:
     self.draw_bg()
     self.draw_possible(self,held,board,lastBoard)
-    self.draw_pieces(self,board)
+    self.draw_pieces(self,board,held)
     self.draw_held(self,held)
 
 def run():

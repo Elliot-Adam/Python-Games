@@ -19,52 +19,48 @@ def grade_calc():
 
 #Put in correct out of total and get percent and letter grade
 
-    t=input ("Enter Numerator \n")
-    v=input ("Enter Denominator \n")
+    c = input ("Enter Numerator \n")
+    t = input ("Enter Denominator \n")
     try: 
-        t=float(t)
-        v=float(v)
+        c = float(c)
+        t = float(t)
     except:
-        print ("CANNOT DIVIDE WORDS")
-    try:
-        s=(t/v)
-    except:
-        print ("CANNOT DIVIDE BY ZERO")
+        print("CANNOT DIVIDE WORDS")
         quit()
-    s=(s*100)
-    print ("{}{}".format(round(s,2), "%"))
-    if s<0:
-        print ("INVALID NUMBERS")
-        quit ()
-    elif s>150:
+    try:
+        s = c / t
+    except:
+        print("CANNOT DIVIDE BY ZERO")
+        quit()
+
+    s *= 100
+    print (f'{round(s,2)}%')
+    if s < 0:
+        print("INVALID NUMBERS")
+        quit()
+
+    elif s>100:
         print ("INVALID")
         quit () 
-    if s   > 100:
-        print ("A+")    
-    elif s >= 94:
-        print ("A")
-    elif s >= 90:
-        print ("A-")
-    elif s >= 86:
-        print ("B+")
-    elif s >= 84:
-        print ("B")
-    elif s >= 80:
-        print ("B-")
-    elif s >= 76:
-        print ("C+")
-    elif s >= 74:
-        print ("C")
-    elif s >= 70:
-        print ("C-")
-    elif s >= 66:
-        print ("D+")
-    elif s >= 64:
-        print ("D")
-    elif s >= 60:
-        print ("D-")
-    elif s  < 60:
-        print ("E")
+
+    tens = s // 10
+    letter_dict = {9 : 'A', 8 : 'B', 7 : 'C', 6 : 'D', 5 : 'F', 4 : 'F', 3 : 'F', 2 : 'F', 1 : 'F', 0 : 'F' }
+    ones = int(s - (10 * tens))
+    sign = ''
+    if ones in range(4):
+        sign = '-'
+
+    if ones in range(6,10):
+        sign = '+'
+    
+    if tens < 5:
+        sign = ''
+
+    if s == 100:
+        print('A+')
+        return
+    
+    print(letter_dict[tens] + sign)
 
 def food_calc():
 
@@ -205,9 +201,9 @@ def Cris_pass():
 
     #if ( hashedPassword == hashedInput):
         #print("Password Correct")
-    if ( hashedInput == alsoHashedPassword):
+    if hashedInput == alsoHashedPassword:
         print("Password Correct")
-        print("also matched saved hash")
+
     else:
         print("Incorrect password")
     
@@ -231,8 +227,6 @@ def function_pay_calc():
     print("Pay", p)
     
 def prime_calc():
-    
-    
     #Input a number and get a Prime or Composite
     
     x=input ("Enter Number \n")
@@ -275,7 +269,7 @@ def factorial_calc():
 #Finds the factorial of the inputted number
     tota = 1
     n = input("Enter number ")
-    nlist = list()
+    nlist = []
     nint = int(n)
     while nint > 0:
         nlist.append (nint)
@@ -650,7 +644,7 @@ def dict_search(dictionary : dict, keyword) -> list:
 
 #All projects
 if __name__=="__main__":
-    test()
+    #test()
     #grade_calc()
     #food_calc()
     #Interest_Calc()
@@ -660,7 +654,7 @@ if __name__=="__main__":
     #inv_calc()
     #pay_calc()
     #even_calc()
-    #Cris_pass()
+    Cris_pass()
     #function_pay_calc()
     #prime_calc()
     #recurs_additive_calc()

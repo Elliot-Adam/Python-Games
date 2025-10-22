@@ -102,7 +102,7 @@ def gmode(mode):
     paddle_b = Paddle(490,displayHeight/2,3,40)
     if mode == 1:
         speed = 30
-        ball = Ball(displayWidth/2,displayHeight/2,10,10,10)
+        ball = Ball(displayWidth/2,displayHeight/2,6,6,10)
     if mode == 2:
         speed = 30
         ball1 = Ball(displayWidth/2,(3*displayHeight/5),6,6,10)

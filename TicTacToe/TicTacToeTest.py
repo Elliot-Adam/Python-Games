@@ -1,4 +1,5 @@
-from TicTacToe import *
+from TicTacToe import Board
+from TicTacToe import HardAI
 
 def test():
     #Board setup

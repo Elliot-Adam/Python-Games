@@ -13,7 +13,7 @@ class Screen:
 
     def start_up(self):
         assert isinstance(self.SCREEN_HEIGHT,int) and isinstance(self.SCREEN_WIDTH,int)
-        self.SCREEN = pygame.display.set_mode((self.SCREEN_HEIGHT,self.SCREEN_WIDTH))
+        self.SCREEN : pygame.Surface = pygame.display.set_mode((self.SCREEN_HEIGHT,self.SCREEN_WIDTH))
 
         if self.bg:
             self.bg = pygame.image.load(self.bg).convert_alpha()
@@ -26,3 +26,6 @@ class Screen:
     def draw_bg(self) -> None:
         scaled_bg = pygame.transform.scale(self.bg,(self.SCREEN_WIDTH,self.SCREEN_HEIGHT))
         self.SCREEN.blit(scaled_bg,(0,0))
+
+    def draw(self, rect : pygame.Rect, coords : tuple[int]):
+        self.SCREEN.blit(rect,coords)

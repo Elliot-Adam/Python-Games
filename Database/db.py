@@ -186,15 +186,15 @@ class DatabaseMethods:
 
         if dataDict != NO_DATA:
             dataType = Utility.assertValidAnswer('Please input the type of data you want to add: ', f'Please input a data type not currently available\nOptions are {dataDict.keys()}', 'inp.capitalize() not in condList', dataDict.keys()).capitalize()
-            dataValue = Utility.assertValidAnswer('Please input the value you want to populate this data type with: ', '', 'True')
+            dataValue = Utility.assertValidAnswer('Please input the value you want to populate this data type with: ', 'Please input data', 'len(inp) > 1')
             
             dataDict[dataType] = dataValue
             
             dataStr = '{' + ','.join([f'\'{k}\' : \'{v}\'' for k,v in dataDict.items()]) + '}'
 
         else:
-            dataType = Utility.assertValidAnswer('Please input the type of data you want to add: ', '', 'True').capitalize()
-            dataValue = Utility.assertValidAnswer('Please input the value you want to populate this data type with: ', '', 'True')
+            dataType = Utility.assertValidAnswer('Please input the type of data you want to add: ', 'Please input data', 'len(inp) > 1').capitalize()
+            dataValue = Utility.assertValidAnswer('Please input the value you want to populate this data type with: ', 'Please input data', 'len(inp) > 1')
 
             dataStr = '{' + f'\'{dataType}\' : \'{dataValue}\'' + '}'            
         

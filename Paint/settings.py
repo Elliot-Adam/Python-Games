@@ -5,3 +5,10 @@ CURSOR_SIZE = 10
 SMALL_BUTTON_SIZE = 25
 BORDER_CONSTANT = 10
 DIMS = (SIZE,SIZE)
+SIZE_CHANGE = 1
+SIZE_MAX = 20
+SIZE_MIN = 5
+IDS : dict = { 'RESET' : 0,
+        'ERASE' : 1,
+        'SIZE_UP' : 2,
+        'SIZE_DOWN' : 3}

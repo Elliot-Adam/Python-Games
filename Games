@@ -1,0 +1,10 @@
+Chess - missing check and checkmate system but moving and other complex things like en passant and castling work
+Connect 4 - works well as CLU
+Database - works perfectly but planning on adding password system
+flappy_bird - works perfectly
+snake - works perfectly, would like to export to an exe
+paint - mspaint program, works well but could expand on utility
+pong - same as snake
+shadow boxing - wip
+tic tac toe - same as connect 4
+useful tools - abstract tools that I use in these games to make the dev process easier

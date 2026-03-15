@@ -37,9 +37,16 @@ def getSpecialButtons(screen : Screen,positions : Positions) -> list[Button]:
     eraserButton = Button(eraserRect,None,pygame.transform.scale(eraserImg,DIMS))
     return [resetButton,eraserButton]
 
-def getSizeButtons() -> list[Button]:
-    #TODO
-    pass
+def getSizeButtons(screen : Screen) -> list[Button]:
+    upRect = pygame.Rect(screen.SCREEN.get_width() - SIZE, 0,SIZE,SIZE)
+    downRect = pygame.Rect(screen.SCREEN.get_width() - SIZE,SIZE,SIZE,SIZE)
+
+    upImg = pygame.image.load('Paint/Assets/up.png')
+    downImg = pygame.image.load('Paint/Assets/down.png')
+    
+    upButton = Button(upRect,None,pygame.transform.scale(upImg,(SMALL_BUTTON_SIZE,SMALL_BUTTON_SIZE)))
+    downButton = Button(downRect,None,pygame.transform.scale(downImg,(SMALL_BUTTON_SIZE,SMALL_BUTTON_SIZE)))
+    return [upButton,downButton]
 
 def color_selection_setup(screen : Screen, positions : Positions) -> list[Button,tuple[int,int,int]]:
     buttons = []
@@ -59,9 +66,16 @@ def color_selection_setup(screen : Screen, positions : Positions) -> list[Button
     
     resetButton.display(screen)
     eraserButton.display(screen)
-    buttons.append((resetButton,None))
-    buttons.append((eraserButton,Colors.black))
+    buttons.append((resetButton,IDS['RESET']))
+    buttons.append((eraserButton,IDS['ERASE']))
 
+    #Appending size changer buttons
+    upButton,downButton = getSizeButtons(screen)
+
+    upButton.display(screen)
+    downButton.display(screen)    
+    buttons.append((upButton,IDS['SIZE_UP']))
+    buttons.append((downButton,IDS['SIZE_DOWN']))
 
     return buttons
 
@@ -75,14 +89,29 @@ def buttonMaker(coords : tuple[int,int], size : tuple[int,int], color : tuple[in
 def paint(screen : Screen, position : tuple[int,int], RADIUS : int, color : tuple[int,int,int]):
     pygame.draw.rect(screen.SCREEN,color, (position[0] - RADIUS,position[1] - RADIUS,RADIUS * 2, RADIUS * 2))
 
-def toolbar(screen : Screen, buttons : list, colorObj : Colors, position : tuple, left_click : bool):
+def toolbar(screen : Screen, buttons : list, colorObj : Colors, position : tuple, left_click : bool, radius : int):
     for buttonZip in buttons:
         button : Button = buttonZip[0]
         color = buttonZip[1]
         if button.point_in_rect(position) and left_click:
-            if color == None:
-                pygame.draw.rect(screen.SCREEN,(0,0,0),pygame.Rect(0,0,WIDTH,screen.SCREEN.get_height() - 2 * SIZE))
-                color = Colors.white
+            #If color in ids, it is a special button and not one of the color options
+            if color in IDS.keys():
+                if color == IDS['RESET']:
+                    pygame.draw.rect(screen.SCREEN,(0,0,0),pygame.Rect(0,0,screen.SCREEN.get_width(),screen.SCREEN.get_height() - 2 * SIZE))
+                    color = Colors.white
+
+                if color == IDS['ERASE']:
+                    color = Colors.black
+
+                if color == IDS['SIZE_UP']:
+                    if radius + SIZE_CHANGE < SIZE_MAX:
+                        radius += SIZE_CHANGE
+                        
+                if color == IDS['SIZE_DOWN']:
+                    if radius - SIZE_CHANGE > SIZE_MIN:
+                        radius -= SIZE_CHANGE
+
+                
 
             if colorObj.color != color:
                 #print(f'Changed from {colorObj.color} to {color}')
@@ -92,7 +121,7 @@ def run():
     screen = Screen(HEIGHT,WIDTH,'Paint',resizable=True)
     screen.start_up()
     print(pygame.RESIZABLE * False)
-    RADIUS = CURSOR_SIZE
+    radius = CURSOR_SIZE
     colorObj = Colors()
     positions = Positions()
     positions.set_up()
@@ -105,8 +134,8 @@ def run():
         left_click = pygame.mouse.get_pressed()[0]
         toolbar(screen,buttons,colorObj,position,left_click)
 
-        if left_click and position[1] < screen.SCREEN.get_height() - 2 * SIZE - RADIUS:
-            paint(screen,position,RADIUS,colorObj.color)
+        if left_click and position[1] < screen.SCREEN.get_height() - 2 * SIZE - radius:
+            paint(screen,position,radius,colorObj.color)
 
         #Seperator rect 
         pygame.draw.rect(screen.SCREEN,Colors.navy,pygame.Rect(0,positions.UPPER,screen.SCREEN.get_width(),SIZE // BORDER_CONSTANT))

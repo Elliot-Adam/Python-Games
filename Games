@@ -1,10 +1,16 @@
-Chess - missing check and checkmate system but moving and other complex things like en passant and castling work
-Connect 4 - works well as CLU
-Database - works perfectly but planning on adding password system
-flappy_bird - works perfectly
-snake - works perfectly, would like to export to an exe
-paint - mspaint program, works well but could expand on utility
-pong - same as snake
-shadow boxing - wip
-tic tac toe - same as connect 4
+Ready = Ready for export to exe, most exports will need pygame included with exe as well as with the assets being added
+WIP = Work in progress that has been thouroughly worked on but still has some things to refine or that I'm not happy with
+Not Done = More of a concept than an actual project but have it there to remind me later
+
+Chess - WIP - missing check and checkmate system but moving and other complex things like en passant and castling work
+Connect 4 - Ready - works well as CLU
+Database - Ready - works perfectly but planning on adding password system
+flappy_bird - Ready
+snake - Ready
+paint - Ready - could work on a screenshot system and adding more colors
+pong - Ready
+shadow boxing - Not Done
+tic tac toe - Ready
+
 useful tools - abstract tools that I use in these games to make the dev process easier
+

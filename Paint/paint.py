@@ -15,12 +15,7 @@ class Positions:
 
 class Colors:
     color_dict = pygame.colordict.THECOLORS
-    red : pygame.Color = color_dict['red1']
-    blue : pygame.Color = color_dict['blue1']
-    green : pygame.Color = color_dict['green1']
-    yellow: pygame.Color = color_dict['yellow1']
     white : pygame.Color = color_dict['white']
-    crimson : pygame.Color = color_dict['crimson']
     navy : pygame.Color = color_dict['navy']
     black : pygame.Color = (0,0,0,255)
     color : pygame.Color = white
@@ -78,10 +73,23 @@ class Utility:
 def button_setup(screen : Screen, positions : Positions) -> list[Button,tuple[int,int,int]]:
     buttons = []
     #Appending each color to the button menu drawing the buttons as well
-    order = [Colors.red,Colors.blue,Colors.green,Colors.yellow,Colors.crimson,Colors.navy,Colors.white]
+    name_set = set()
+
+    order = []
+    for k, v in pygame.colordict.THECOLORS.items():
+        total = v[0] + v[1] + v[2]
+        if total < 180 or total > 700:
+            continue
+        
+        trimmed = k.translate(str.maketrans('1234567890','          ')).strip()
+        if trimmed not in name_set:
+            #print(trimmed)
+            name_set.add(trimmed)
+            order.append(v)
+
     placement = {0 : positions.UPPER, 1 : positions.LOWER}
     for index, color in enumerate(order):
-        if SIZE * (index + 2) > screen.SCREEN.get_width():
+        if SIZE * (index // 2 + 3) > screen.SCREEN.get_width():
             break
         
         x = SIZE * (index // 2)
